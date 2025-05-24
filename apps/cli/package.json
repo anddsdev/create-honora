@@ -30,12 +30,20 @@
     "prepublishOnly": "bun --bun run build"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/fs-extra": "^11.0.4",
+    "@types/yargs": "^17.0.33"
   },
   "peerDependencies": {
     "typescript": "5.8.3"
   },
   "dependencies": {
-    "tsdown": "^0.12.3"
+    "@clack/prompts": "^0.11.0",
+    "consola": "^3.4.2",
+    "fs-extra": "^11.3.0",
+    "handlebars": "^4.7.8",
+    "picocolors": "^1.1.1",
+    "tsdown": "^0.12.3",
+    "yargs": "^17.7.2"
   }
 }
