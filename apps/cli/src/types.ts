@@ -4,7 +4,8 @@ export type YargsArgs = {
   yes: boolean;
   git: boolean;
   skipInstall: boolean;
-
+  runtime: 'node' | 'bun' | 'deno';
+  packageManager: 'npm' | 'yarn' | 'pnpm';
   $0: string;
   _: (string | number)[];
   $: (string | number)[];

@@ -4,15 +4,19 @@ import path from 'node:path';
 
 import pc from 'picocolors';
 
-import { validateProjectName, checkDirectory, suggestAlternativeName } from './utils/validation.js';
 import { getProjectInfo, showProjectSummary } from './utils/project-name.js';
+import { validateProjectName, checkDirectory, suggestAlternativeName } from './utils/validation.js';
 import type { DirectoryConflictAction } from './utils/validation.js';
+
+export type Runtime = 'node' | 'bun' | 'deno';
+export type PackageManager = 'npm' | 'yarn' | 'pnpm' | 'bun';
 
 export interface ProjectOptions {
   projectName: string;
   projectPath: string;
   features: string[];
-  packageManager: 'npm' | 'yarn' | 'pnpm' | 'bun';
+  packageManager: PackageManager;
+  runtime: Runtime;
   typescript: boolean;
   git: boolean;
   directoryAction?: DirectoryConflictAction;
@@ -168,7 +172,7 @@ export async function promptFeatures(): Promise<string[]> {
 }
 
 /**
- * Prompts for package manager selection
+ * Prompts for package manager selection (npm, yarn, pnpm, bun)
  */
 export async function promptPackageManager(): Promise<'npm' | 'yarn' | 'pnpm' | 'bun'> {
   const packageManager = await select({
@@ -187,6 +191,27 @@ export async function promptPackageManager(): Promise<'npm' | 'yarn' | 'pnpm' | 
   }
 
   return packageManager as 'npm' | 'yarn' | 'pnpm' | 'bun';
+}
+
+/**
+ * Prompts for runtime selection (node, bun, deno)
+ */
+export async function promptRuntime(): Promise<'node' | 'bun' | 'deno'> {
+  const runtime = await select({
+    message: 'Which runtime would you like to use?',
+    options: [
+      { value: 'node', label: 'Node.js' },
+      { value: 'bun', label: 'Bun' },
+      { value: 'deno', label: 'Deno' },
+    ],
+    initialValue: 'node',
+  });
+
+  if (typeof runtime === 'symbol') {
+    throw new Error('Runtime selection cancelled');
+  }
+
+  return runtime as 'node' | 'bun' | 'deno';
 }
 
 /**
@@ -255,6 +280,7 @@ export async function collectProjectOptions(args: { projectName?: string; yes?: 
       projectPath: finalProjectPath,
       features: ['cors', 'logger'],
       packageManager: 'npm',
+      runtime: 'node',
       typescript: true,
       git: true,
       directoryAction,
@@ -265,6 +291,7 @@ export async function collectProjectOptions(args: { projectName?: string; yes?: 
   const features = await promptFeatures();
   const typescript = await promptTypeScript();
   const packageManager = await promptPackageManager();
+  const runtime = await promptRuntime();
 
   const git = await confirm({
     message: 'Initialize a Git repository?',
@@ -276,6 +303,7 @@ export async function collectProjectOptions(args: { projectName?: string; yes?: 
     projectPath: finalProjectPath,
     features,
     packageManager,
+    runtime,
     typescript,
     git: typeof git === 'symbol' ? true : git,
     directoryAction,
