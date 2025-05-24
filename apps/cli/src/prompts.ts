@@ -1,6 +1,9 @@
 import { text, select, multiselect, confirm } from '@clack/prompts';
-import path from 'path';
+
+import path from 'node:path';
+
 import pc from 'picocolors';
+
 import { validateProjectName, checkDirectory, suggestAlternativeName } from './utils/validation.js';
 import type { DirectoryConflictAction } from './utils/validation.js';
 
