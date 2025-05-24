@@ -8,7 +8,6 @@
   },
   "license": "MIT",
   "type": "module",
-  "private": true,
   "bin": {
     "create-honora": "dist/index.js"
   },
