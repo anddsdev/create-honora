@@ -5,6 +5,7 @@ import path from 'node:path';
 import pc from 'picocolors';
 
 import { validateProjectName, checkDirectory, suggestAlternativeName } from './utils/validation.js';
+import { getProjectInfo, showProjectSummary } from './utils/project-name.js';
 import type { DirectoryConflictAction } from './utils/validation.js';
 
 export interface ProjectOptions {
@@ -14,6 +15,7 @@ export interface ProjectOptions {
   packageManager: 'npm' | 'yarn' | 'pnpm' | 'bun';
   typescript: boolean;
   git: boolean;
+  directoryAction?: DirectoryConflictAction;
 }
 
 /**
@@ -206,38 +208,42 @@ export async function promptTypeScript(): Promise<boolean> {
 /**
  * Main prompt flow
  */
-export async function collectProjectOptions(args: {
-  projectDirectory?: string;
-  yes?: boolean;
-}): Promise<ProjectOptions> {
-  // Determine project path and name
-  const projectPath = path.resolve(args.projectDirectory || process.cwd());
-  const defaultProjectName = path.basename(projectPath);
+export async function collectProjectOptions(args: { projectName?: string; yes?: boolean }): Promise<ProjectOptions> {
+  // Get and validate project information
+  const projectInfo = getProjectInfo(args.projectName);
+  let { projectName, projectPath, isCurrentDirectory } = projectInfo;
+
+  // Show project summary
+  if (!args.yes) {
+    showProjectSummary(projectName, projectPath, isCurrentDirectory);
+  }
 
   // Check directory status
   const dirStatus = await checkDirectory(projectPath);
 
   let finalProjectPath = projectPath;
-  let projectName = defaultProjectName;
+  let finalProjectName = projectName;
 
   // Handle directory conflicts
+  let directoryAction: DirectoryConflictAction | undefined;
   if (dirStatus.exists && !dirStatus.isEmpty) {
-    const conflict = await handleDirectoryConflict(projectPath, defaultProjectName);
+    const conflict = await handleDirectoryConflict(projectPath, finalProjectName);
 
     if (conflict.action === 'cancel') {
       throw new Error('Project creation cancelled');
     }
 
+    directoryAction = conflict.action;
     if (conflict.action === 'rename' && conflict.newPath) {
       finalProjectPath = conflict.newPath;
-      projectName = path.basename(finalProjectPath);
+      finalProjectName = path.basename(finalProjectPath);
     }
   } else {
-    // Prompt for project name if not using defaults
-    if (!args.yes) {
-      projectName = await promptProjectName(defaultProjectName);
-      if (projectName !== defaultProjectName) {
-        finalProjectPath = path.join(path.dirname(projectPath), projectName);
+    // Prompt for project name if not using defaults and creating in current directory
+    if (!args.yes && args.projectName === '.') {
+      finalProjectName = await promptProjectName(finalProjectName);
+      if (finalProjectName !== projectName) {
+        finalProjectPath = path.join(path.dirname(projectPath), finalProjectName);
       }
     }
   }
@@ -245,12 +251,13 @@ export async function collectProjectOptions(args: {
   // Use defaults if --yes flag is provided
   if (args.yes) {
     return {
-      projectName,
+      projectName: finalProjectName,
       projectPath: finalProjectPath,
       features: ['cors', 'logger'],
       packageManager: 'npm',
       typescript: true,
       git: true,
+      directoryAction,
     };
   }
 
@@ -265,11 +272,12 @@ export async function collectProjectOptions(args: {
   });
 
   return {
-    projectName,
+    projectName: finalProjectName,
     projectPath: finalProjectPath,
     features,
     packageManager,
     typescript,
     git: typeof git === 'symbol' ? true : git,
+    directoryAction,
   };
 }

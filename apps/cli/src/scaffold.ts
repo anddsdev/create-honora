@@ -1,9 +1,14 @@
 import fs from 'fs-extra';
+
 import path from 'path';
+
 import { fileURLToPath } from 'url';
-import type { ProjectOptions } from './prompts.js';
+
 import { execSync } from 'child_process';
+
 import consola from 'consola';
+
+import type { ProjectOptions } from './prompts.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -11,14 +16,25 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
  * Scaffolds a new Hono project based on the provided options
  */
 export async function scaffoldProject(options: ProjectOptions) {
-  const { projectPath, projectName, features, typescript, git } = options;
+  const { projectPath, projectName, features, typescript, git, directoryAction } = options;
+
+  // Handle directory action if needed
+  if (directoryAction === 'overwrite') {
+    // Remove all files except .git folder to preserve git history
+    const files = await fs.readdir(projectPath);
+    for (const file of files) {
+      if (file !== '.git') {
+        await fs.remove(path.join(projectPath, file));
+      }
+    }
+  }
 
   // Create project directory
   await fs.ensureDir(projectPath);
 
   // Copy base template
   const templateDir = path.join(__dirname, '..', 'templates', 'base');
-  await copyTemplate(templateDir, projectPath, { projectName });
+  await copyTemplate(templateDir, projectPath, { projectName }, directoryAction === 'merge');
 
   // Apply feature-specific modifications
   await applyFeatures(projectPath, features, typescript);
@@ -35,21 +51,101 @@ export async function scaffoldProject(options: ProjectOptions) {
 }
 
 /**
+ * Generates a random secret for environment variables
+ */
+function generateRandomSecret(length: number): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
+/**
+ * Processes environment file content to provide default values
+ */
+function processEnvContent(content: string, projectName?: string): string {
+  // Remove comments and provide default values
+  return content
+    .split('\n')
+    .map((line) => {
+      const trimmed = line.trim();
+
+      // Keep existing key=value pairs as-is
+      if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
+        return line;
+      }
+
+      // Convert commented environment variables to actual values
+      if (trimmed.startsWith('# ') && trimmed.includes('=')) {
+        const envLine = trimmed.substring(2); // Remove '# '
+
+        // Provide default values for common environment variables
+        if (envLine.includes('DATABASE_URL=')) {
+          const dbName = projectName ? `${projectName.replace(/[^a-zA-Z0-9]/g, '_')}_db` : 'honora_db';
+          return `DATABASE_URL=postgresql://user:password@localhost:5432/${dbName}`;
+        }
+        if (envLine.includes('JWT_SECRET=')) {
+          // Generate a more secure default JWT secret
+          const jwtSecret = generateRandomSecret(64);
+          return `JWT_SECRET=${jwtSecret}`;
+        }
+        if (envLine.includes('API_KEY=')) {
+          const apiKey = generateRandomSecret(32);
+          return `API_KEY=${apiKey}`;
+        }
+        if (envLine.includes('REDIS_URL=')) {
+          return 'REDIS_URL=redis://localhost:6379';
+        }
+
+        // Default: return the line uncommented
+        return envLine;
+      }
+
+      // Keep comments and empty lines
+      return line;
+    })
+    .join('\n');
+}
+
+/**
  * Copies template files and replaces template variables
  */
-async function copyTemplate(templatePath: string, targetPath: string, variables: Record<string, string>) {
+async function copyTemplate(
+  templatePath: string,
+  targetPath: string,
+  variables: Record<string, string>,
+  mergeMode = false,
+) {
   const files = await fs.readdir(templatePath);
 
   for (const file of files) {
     const sourcePath = path.join(templatePath, file);
-    const targetFile = path.join(targetPath, file);
+    let targetFile = path.join(targetPath, file);
     const stat = await fs.stat(sourcePath);
 
     if (stat.isDirectory()) {
       await fs.ensureDir(targetFile);
-      await copyTemplate(sourcePath, targetFile, variables);
+      await copyTemplate(sourcePath, targetFile, variables, mergeMode);
     } else {
+      // Handle env.example -> .env conversion
+      if (file === 'env.example') {
+        targetFile = path.join(targetPath, '.env');
+      }
+
+      // In merge mode, skip files that already exist to avoid overwriting
+      if (mergeMode && (await fs.pathExists(targetFile))) {
+        console.log(`Skipping existing file: ${path.basename(targetFile)}`);
+        continue;
+      }
+
       let content = await fs.readFile(sourcePath, 'utf-8');
+
+      // Process .env file content
+      if (file === 'env.example') {
+        content = processEnvContent(content, variables.projectName);
+      }
 
       // Replace template variables
       for (const [key, value] of Object.entries(variables)) {

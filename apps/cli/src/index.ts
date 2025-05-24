@@ -17,11 +17,13 @@ async function main() {
 
   const args = (await yargs(hideBin(process.argv))
     .scriptName('create-honora')
-    .usage('$0 <command> [args]', 'Create a Hono API project with best practices')
-    .positional('project-directory', {
-      type: 'string',
-      describe: 'The directory to create the project in',
-      default: process.cwd(),
+    .usage('$0 [project-name]', 'Create a Hono API project with best practices')
+    .command('$0 [project-name]', 'Create a new Hono project', (yargs) => {
+      return yargs.positional('project-name', {
+        type: 'string',
+        describe: 'Name of the project directory to create',
+        default: '.',
+      });
     })
     .options('yes', {
       type: 'boolean',
@@ -53,7 +55,7 @@ async function main() {
   try {
     // Collect project options through prompts
     const options = await collectProjectOptions({
-      projectDirectory: args.projectDirectory,
+      projectName: args.projectName,
       yes: args.yes,
     });
 

@@ -15,8 +15,8 @@ A modern REST API built with Hono.
 # Install dependencies
 npm install
 
-# Copy environment variables
-cp env.example .env
+# Environment variables are already configured in .env
+# Customize them as needed for your project
 ```
 
 ### Development
@@ -72,7 +72,15 @@ npm start
 
 ## Environment Variables
 
-See `env.example` for available environment variables.
+The `.env` file is automatically created with default values. Key variables include:
+
+- `NODE_ENV` - Application environment (development/production)
+- `PORT` - Server port (default: 3000)
+- `DATABASE_URL` - Database connection string (if using database features)
+- `JWT_SECRET` - Secret key for JWT authentication (auto-generated)
+- `API_KEY` - General API key (auto-generated)
+
+**Important**: Change the auto-generated secrets before deploying to production!
 
 ## License
 

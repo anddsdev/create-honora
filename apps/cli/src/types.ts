@@ -1,5 +1,5 @@
 export type YargsArgs = {
-  projectDirectory: string;
+  projectName: string;
 
   yes: boolean;
   git: boolean;
