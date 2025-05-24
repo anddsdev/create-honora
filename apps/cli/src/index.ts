@@ -1,4 +1,4 @@
-import { intro } from '@clack/prompts';
+import { intro, outro, spinner } from '@clack/prompts';
 
 import consola from 'consola';
 
@@ -8,7 +8,9 @@ import pc from 'picocolors';
 
 import yargs from 'yargs';
 
-import type { YargsArgs } from './types';
+import { collectProjectOptions } from './prompts.js';
+import { scaffoldProject } from './scaffold.js';
+import type { YargsArgs } from './types.js';
 
 async function main() {
   const startTime = Date.now();
@@ -48,8 +50,51 @@ async function main() {
 
   intro(pc.yellow('Creating a new Honora API project'));
 
-  const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
-  consola.success(`Project created in ${elapsedTime}s`);
+  try {
+    // Collect project options through prompts
+    const options = await collectProjectOptions({
+      projectDirectory: args.projectDirectory,
+      yes: args.yes,
+    });
+
+    // Override git option if provided via CLI
+    if (args.git === false) {
+      options.git = false;
+    }
+
+    // Start scaffolding process
+    const s = spinner();
+    s.start('Creating project structure...');
+
+    await scaffoldProject(options);
+
+    s.stop('Project structure created');
+
+    // Install dependencies if not skipped
+    if (!args.skipInstall) {
+      s.start('Installing dependencies...');
+      // TODO: Implement dependency installation
+      s.stop('Dependencies installed');
+    }
+
+    const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
+
+    outro(pc.green(`✨ Project created successfully in ${elapsedTime}s!`));
+
+    console.log('\n' + pc.bold('Next steps:'));
+    console.log(pc.gray('  cd ') + pc.cyan(options.projectName));
+    if (args.skipInstall) {
+      console.log(pc.gray('  npm install'));
+    }
+    console.log(pc.gray('  npm run dev'));
+    console.log('\n' + pc.dim('Happy coding! 🚀'));
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('cancelled')) {
+      outro(pc.yellow('Project creation cancelled'));
+      process.exit(0);
+    }
+    throw error;
+  }
 }
 
 main().catch((err) => {
