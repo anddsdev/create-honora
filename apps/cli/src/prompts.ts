@@ -11,10 +11,17 @@ import type { DirectoryConflictAction } from './utils/validation.js';
 export type Runtime = 'node' | 'bun' | 'deno';
 export type PackageManager = 'npm' | 'yarn' | 'pnpm' | 'bun';
 
+export interface FeatureOptions {
+  logger?: 'pino' | 'hono-standard';
+  auth?: 'better-auth' | 'jwt';
+  cors?: boolean;
+}
+
 export interface ProjectOptions {
   projectName: string;
   projectPath: string;
   features: string[];
+  featureOptions: FeatureOptions;
   packageManager: PackageManager;
   runtime: Runtime;
   typescript: boolean;
@@ -103,9 +110,9 @@ export async function handleDirectoryConflict(
 }
 
 /**
- * Prompts for feature selection
+ * Prompts for feature selection and their specific options
  */
-export async function promptFeatures(): Promise<string[]> {
+export async function promptFeatures(): Promise<{ features: string[]; featureOptions: FeatureOptions }> {
   const features = await multiselect({
     message: 'Which features would you like to include?',
     options: [
@@ -120,47 +127,11 @@ export async function promptFeatures(): Promise<string[]> {
         hint: 'Request/Response logging middleware',
       },
       {
-        value: 'compression',
-        label: 'Compression',
-        hint: 'Response compression (gzip/brotli)',
-      },
-      {
-        value: 'helmet',
-        label: 'Security Headers',
-        hint: 'Helmet-like security headers',
-      },
-      {
-        value: 'validator',
-        label: 'Validation',
-        hint: 'Request validation with Zod',
-      },
-      {
-        value: 'swagger',
-        label: 'Swagger/OpenAPI',
-        hint: 'API documentation with Swagger UI',
-      },
-      {
-        value: 'database',
-        label: 'Database',
-        hint: 'Database setup with Prisma ORM',
-      },
-      {
         value: 'auth',
         label: 'Authentication',
-        hint: 'JWT authentication setup',
-      },
-      {
-        value: 'testing',
-        label: 'Testing',
-        hint: 'Jest/Vitest testing setup',
-      },
-      {
-        value: 'docker',
-        label: 'Docker',
-        hint: 'Dockerfile and docker-compose.yml',
+        hint: 'User authentication system',
       },
     ],
-    initialValues: ['cors', 'logger'],
     required: false,
   });
 
@@ -168,7 +139,42 @@ export async function promptFeatures(): Promise<string[]> {
     throw new Error('Feature selection cancelled');
   }
 
-  return features;
+  const featureOptions: FeatureOptions = {};
+
+  // Prompt for specific options based on selected features
+  if (features.includes('logger')) {
+    const loggerChoice = await select({
+      message: 'Which logging solution would you like to use?',
+      options: [
+        { value: 'hono-standard', label: 'Hono Logger', hint: 'Built-in Hono logging middleware' },
+        { value: 'pino', label: 'Pino', hint: 'Fast JSON logger for Node.js' },
+      ],
+    });
+
+    if (typeof loggerChoice !== 'symbol') {
+      featureOptions.logger = loggerChoice as 'pino' | 'hono-standard';
+    }
+  }
+
+  if (features.includes('auth')) {
+    const authChoice = await select({
+      message: 'Which authentication solution would you like to use?',
+      options: [
+        { value: 'better-auth', label: 'Better Auth', hint: 'Full-featured auth library with social providers' },
+        { value: 'jwt', label: 'JWT', hint: 'Simple JWT-based authentication' },
+      ],
+    });
+
+    if (typeof authChoice !== 'symbol') {
+      featureOptions.auth = authChoice as 'better-auth' | 'jwt';
+    }
+  }
+
+  if (features.includes('cors')) {
+    featureOptions.cors = true;
+  }
+
+  return { features, featureOptions };
 }
 
 /**
@@ -278,7 +284,8 @@ export async function collectProjectOptions(args: { projectName?: string; yes?: 
     return {
       projectName: finalProjectName,
       projectPath: finalProjectPath,
-      features: ['cors', 'logger'],
+      features: [],
+      featureOptions: {},
       packageManager: 'npm',
       runtime: 'node',
       typescript: true,
@@ -288,7 +295,7 @@ export async function collectProjectOptions(args: { projectName?: string; yes?: 
   }
 
   // Interactive prompts
-  const features = await promptFeatures();
+  const { features, featureOptions } = await promptFeatures();
   const typescript = await promptTypeScript();
   const packageManager = await promptPackageManager();
   const runtime = await promptRuntime();
@@ -302,6 +309,7 @@ export async function collectProjectOptions(args: { projectName?: string; yes?: 
     projectName: finalProjectName,
     projectPath: finalProjectPath,
     features,
+    featureOptions,
     packageManager,
     runtime,
     typescript,

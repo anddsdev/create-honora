@@ -7,16 +7,32 @@ import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 
 import consola from 'consola';
+import Handlebars from 'handlebars';
 
 import type { ProjectOptions } from './prompts.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Register Handlebars helpers
+Handlebars.registerHelper('eq', function (a, b) {
+  return a === b;
+});
+
 /**
  * Scaffolds a new Hono project based on the provided options
  */
 export async function scaffoldProject(options: ProjectOptions) {
-  const { projectPath, projectName, features, typescript, git, directoryAction } = options;
+  const {
+    projectPath,
+    projectName,
+    features,
+    featureOptions,
+    packageManager,
+    runtime,
+    typescript,
+    git,
+    directoryAction,
+  } = options;
 
   // Handle directory action if needed
   if (directoryAction === 'overwrite') {
@@ -33,11 +49,18 @@ export async function scaffoldProject(options: ProjectOptions) {
   await fs.ensureDir(projectPath);
 
   // Copy base template
-  const templateDir = path.join(__dirname, '..', 'templates', 'base');
-  await copyTemplate(templateDir, projectPath, { projectName }, directoryAction === 'merge');
+  const templateDir = path.join(__dirname, '..', 'templates', 'api', 'base');
+  const templateData = {
+    projectName,
+    runtime,
+    typescript,
+    packageManager,
+    featureOptions,
+  };
+  await copyTemplate(templateDir, projectPath, templateData, directoryAction === 'merge');
 
-  // Apply feature-specific modifications
-  await applyFeatures(projectPath, features, typescript);
+  // Create additional feature-specific files
+  await createFeatureFiles(projectPath, featureOptions, typescript);
 
   // Convert to JavaScript if needed
   if (!typescript) {
@@ -82,10 +105,6 @@ function processEnvContent(content: string, projectName?: string): string {
         const envLine = trimmed.substring(2); // Remove '# '
 
         // Provide default values for common environment variables
-        if (envLine.includes('DATABASE_URL=')) {
-          const dbName = projectName ? `${projectName.replace(/[^a-zA-Z0-9]/g, '_')}_db` : 'honora_db';
-          return `DATABASE_URL=postgresql://user:password@localhost:5432/${dbName}`;
-        }
         if (envLine.includes('JWT_SECRET=')) {
           // Generate a more secure default JWT secret
           const jwtSecret = generateRandomSecret(64);
@@ -94,9 +113,6 @@ function processEnvContent(content: string, projectName?: string): string {
         if (envLine.includes('API_KEY=')) {
           const apiKey = generateRandomSecret(32);
           return `API_KEY=${apiKey}`;
-        }
-        if (envLine.includes('REDIS_URL=')) {
-          return 'REDIS_URL=redis://localhost:6379';
         }
 
         // Default: return the line uncommented
@@ -110,12 +126,12 @@ function processEnvContent(content: string, projectName?: string): string {
 }
 
 /**
- * Copies template files and replaces template variables
+ * Copies template files and replaces template variables using Handlebars
  */
 async function copyTemplate(
   templatePath: string,
   targetPath: string,
-  variables: Record<string, string>,
+  variables: Record<string, any>,
   mergeMode = false,
 ) {
   const files = await fs.readdir(templatePath);
@@ -129,8 +145,11 @@ async function copyTemplate(
       await fs.ensureDir(targetFile);
       await copyTemplate(sourcePath, targetFile, variables, mergeMode);
     } else {
-      // Handle env.example -> .env conversion
-      if (file === 'env.example') {
+      // Handle template file extensions and renaming
+      if (file.endsWith('.hbs')) {
+        const baseName = file.replace('.hbs', '');
+        targetFile = path.join(targetPath, baseName);
+      } else if (file === 'env.example') {
         targetFile = path.join(targetPath, '.env');
       }
 
@@ -145,11 +164,17 @@ async function copyTemplate(
       // Process .env file content
       if (file === 'env.example') {
         content = processEnvContent(content, variables.projectName);
-      }
-
-      // Replace template variables
-      for (const [key, value] of Object.entries(variables)) {
-        content = content.replace(new RegExp(`{{${key}}}`, 'g'), value);
+      } else if (file.endsWith('.hbs')) {
+        // Use Handlebars to process template
+        const template = Handlebars.compile(content);
+        content = template(variables);
+      } else {
+        // Replace template variables for non-Handlebars files
+        for (const [key, value] of Object.entries(variables)) {
+          if (typeof value === 'string') {
+            content = content.replace(new RegExp(`{{${key}}}`, 'g'), value);
+          }
+        }
       }
 
       await fs.writeFile(targetFile, content);
@@ -158,178 +183,49 @@ async function copyTemplate(
 }
 
 /**
- * Applies selected features to the project
- */
-async function applyFeatures(projectPath: string, features: string[], typescript: boolean) {
-  const packageJsonPath = path.join(projectPath, 'package.json');
-  const packageJson = await fs.readJson(packageJsonPath);
-
-  // Add dependencies based on features
-  if (features.includes('compression')) {
-    packageJson.dependencies['@hono/compress'] = '^1.0.0';
-  }
-
-  if (features.includes('helmet')) {
-    packageJson.dependencies['@hono/secure-headers'] = '^1.0.0';
-  }
-
-  if (features.includes('validator')) {
-    packageJson.dependencies['@hono/zod-validator'] = '^0.2.2';
-    packageJson.dependencies['zod'] = '^3.22.4';
-  }
-
-  if (features.includes('swagger')) {
-    packageJson.dependencies['@hono/swagger-ui'] = '^0.2.2';
-    packageJson.dependencies['@hono/zod-openapi'] = '^0.9.8';
-  }
-
-  if (features.includes('database')) {
-    packageJson.dependencies['@prisma/client'] = '^5.15.0';
-    packageJson.devDependencies['prisma'] = '^5.15.0';
-    packageJson.scripts['db:generate'] = 'prisma generate';
-    packageJson.scripts['db:migrate'] = 'prisma migrate dev';
-    packageJson.scripts['db:studio'] = 'prisma studio';
-  }
-
-  if (features.includes('auth')) {
-    packageJson.dependencies['@hono/jwt'] = '^2.0.0';
-    packageJson.dependencies['bcryptjs'] = '^2.4.3';
-    if (typescript) {
-      packageJson.devDependencies['@types/bcryptjs'] = '^2.4.6';
-    }
-  }
-
-  if (features.includes('testing')) {
-    packageJson.devDependencies['vitest'] = '^1.6.0';
-    packageJson.devDependencies['@vitest/ui'] = '^1.6.0';
-    packageJson.scripts['test'] = 'vitest';
-    packageJson.scripts['test:ui'] = 'vitest --ui';
-    packageJson.scripts['test:coverage'] = 'vitest --coverage';
-  }
-
-  await fs.writeJson(packageJsonPath, packageJson, { spaces: 2 });
-
-  // Create feature-specific files
-  await createFeatureFiles(projectPath, features, typescript);
-}
-
-/**
  * Creates additional files for selected features
  */
-async function createFeatureFiles(projectPath: string, features: string[], typescript: boolean) {
+async function createFeatureFiles(projectPath: string, featureOptions: any, typescript: boolean) {
   const srcPath = path.join(projectPath, 'src');
 
-  // Create middleware directory
-  if (features.some((f) => ['compression', 'helmet', 'auth'].includes(f))) {
-    const middlewarePath = path.join(srcPath, 'middleware');
-    await fs.ensureDir(middlewarePath);
+  // Create auth route if auth feature is selected
+  if (featureOptions.auth) {
+    await fs.ensureDir(path.join(srcPath, 'routes'));
+    const authRouteFile = path.join(srcPath, 'routes', `auth.${typescript ? 'ts' : 'js'}`);
 
-    // Create middleware index file
-    const middlewareIndexPath = path.join(middlewarePath, typescript ? 'index.ts' : 'index.js');
-    const middlewareExports: string[] = [];
+    if (featureOptions.auth === 'jwt') {
+      const authContent = `
+import { Hono } from 'hono';
+import { jwt } from '@hono/jwt';
+import bcrypt from 'bcryptjs';
 
-    if (features.includes('compression')) {
-      middlewareExports.push(`export { compress } from '@hono/compress';`);
-    }
+export const authRouter = new Hono();
 
-    if (features.includes('helmet')) {
-      middlewareExports.push(`export { secureHeaders } from '@hono/secure-headers';`);
-    }
-
-    if (middlewareExports.length > 0) {
-      await fs.writeFile(middlewareIndexPath, middlewareExports.join('\n'));
-    }
+// Login endpoint
+authRouter.post('/login', async (c) => {
+  const { email, password } = await c.req.json();
+  
+  // TODO: Implement user lookup from database
+  // const user = await getUserByEmail(email);
+  
+  // For demo purposes
+  const user = { id: 1, email: 'demo@example.com', password: 'hashedpassword' };
+  
+  if (!user || !await bcrypt.compare(password, user.password)) {
+    return c.json({ error: 'Invalid credentials' }, 401);
   }
+  
+  const token = await jwt.sign({ userId: user.id }, process.env.JWT_SECRET!);
+  return c.json({ token });
+});
 
-  // Create Prisma schema if database feature is selected
-  if (features.includes('database')) {
-    const prismaPath = path.join(projectPath, 'prisma');
-    await fs.ensureDir(prismaPath);
-
-    const schemaContent = `// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-generator client {
-  provider = "prisma-client-js"
-}
-
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
-// Example model
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-`;
-
-    await fs.writeFile(path.join(prismaPath, 'schema.prisma'), schemaContent);
-  }
-
-  // Create Dockerfile if Docker feature is selected
-  if (features.includes('docker')) {
-    const dockerfileContent = `FROM node:20-alpine AS base
-
-# Install dependencies only when needed
-FROM base AS deps
-RUN apk add --no-cache libc6-compat
-WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-RUN npm ci
-
-# Rebuild the source code only when needed
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-
-RUN npm run build
-
-# Production image, copy all the files and run
-FROM base AS runner
-WORKDIR /app
-
-ENV NODE_ENV production
-
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 hono
-
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-
-USER hono
-
-EXPOSE 3000
-
-ENV PORT 3000
-
-CMD ["node", "dist/index.js"]
-`;
-
-    await fs.writeFile(path.join(projectPath, 'Dockerfile'), dockerfileContent);
-
-    const dockerComposeContent = `version: '3.8'
-
-services:
-  api:
-    build: .
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=production
-      - PORT=3000
-    restart: unless-stopped
-`;
-
-    await fs.writeFile(path.join(projectPath, 'docker-compose.yml'), dockerComposeContent);
+// Protected route example
+authRouter.get('/profile', jwt({ secret: process.env.JWT_SECRET! }), async (c) => {
+  const payload = c.get('jwtPayload');
+  return c.json({ userId: payload.userId });
+});`;
+      await fs.writeFile(authRouteFile, authContent);
+    }
   }
 }
 

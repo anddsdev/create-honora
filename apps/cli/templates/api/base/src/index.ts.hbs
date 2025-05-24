@@ -1,0 +1,105 @@
+{{#if (eq runtime 'node')}}
+import { serve } from '@hono/node-server';
+{{/if}}
+import { Hono } from 'hono';
+{{#if featureOptions.cors}}
+import { cors } from 'hono/cors';
+{{/if}}
+{{#if (eq featureOptions.logger 'hono-standard')}}
+import { logger } from 'hono/logger';
+{{/if}}
+{{#if (eq featureOptions.logger 'pino')}}
+import pino from 'pino';
+{{/if}}
+
+const app = new Hono();
+
+{{#if (eq featureOptions.logger 'pino')}}
+const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
+{{/if}}
+
+{{#if (eq featureOptions.logger 'hono-standard')}}
+app.use('*', logger());
+{{/if}}
+
+{{#if (eq featureOptions.logger 'pino')}}
+  app.use('*', async (c, next) => { 
+    const start = Date.now();
+    await next();
+    const ms = Date.now() - start; 
+    logger.info({
+      method: c.req.method, 
+      url: c.req.url, 
+      status: c.res.status, 
+      duration: `${ms}ms` 
+    });
+  });
+{{/if}}
+
+{{#if featureOptions.cors}}
+app.use('*', cors({ 
+  origin: process.env.CORS_ORIGIN || '*', 
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  {{#if featureOptions.auth}}
+  allowHeaders: ['Content-Type', 'Authorization'], 
+  allowCredentials: true
+  {{/if}}
+  }));
+{{/if}}
+
+app.get('/', (c) => { 
+  return c.json({ 
+    message: 'Welcome to {{projectName}} API',
+    version: '0.0.1', 
+    runtime: '{{runtime}}', 
+    features: [
+{{#if featureOptions.cors}}
+  'cors',
+{{/if}}
+{{#if featureOptions.logger}}
+  'logger',
+{{/if}}
+{{#if featureOptions.auth}}
+  'auth',
+{{/if}}
+    ].filter(Boolean) 
+  });
+});
+
+{{#if featureOptions.auth}}
+app.on(['POST', 'GET'], '/api/auth/**', (c) => auth.handler(c.req.raw));
+{{/if}}
+
+app.notFound((c) => { 
+  return c.json({ 
+    error: 'Not Found',
+    message: `Route ${c.req.url} not found` 
+  }, 404);
+});
+app.onError((err, c) => {
+{{#if (eq featureOptions.logger 'pino')}}
+  logger.error(err, 'Unhandled error');
+{{else}}
+  console.error(`${err}`);
+{{/if}}
+  return c.json({ 
+      error: 'Internal Server Error', 
+      message: err.message 
+    }, 500);
+});
+
+const port = process.env.PORT || 3000;
+
+{{#if (eq runtime 'node')}}
+serve({ fetch: app.fetch, port: Number(port) });
+{{else if (eq runtime 'bun')}}
+export default { port: Number(port), fetch: app.fetch };
+{{else if (eq runtime 'deno')}}
+Deno.serve({ port: Number(port) }, app.fetch);
+{{/if}}
+
+{{#if (eq featureOptions.logger 'pino')}}
+logger.info(`Server is running on http://localhost:${port}`);
+{{else}}
+console.log(`Server is running on http://localhost:${port}`);
+{{/if}}
