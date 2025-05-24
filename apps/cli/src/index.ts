@@ -8,6 +8,8 @@ import pc from 'picocolors';
 
 import yargs from 'yargs';
 
+import { version } from '../package.json';
+
 import { collectProjectOptions } from './prompts.js';
 import { scaffoldProject } from './scaffold.js';
 import type { YargsArgs } from './types.js';
@@ -42,7 +44,7 @@ async function main() {
     })
     .completion()
     .recommendCommands()
-    .version('0.0.1')
+    .version(version)
     .alias('v', 'version')
     .help()
     .alias('h', 'help')
