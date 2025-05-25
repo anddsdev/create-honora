@@ -242,7 +242,7 @@ export async function promptRuntime(): Promise<Runtime> {
  * Prompts for TypeScript usage
  * @returns Whether to use TypeScript
  */
-export async function promptTypeScript(): Promise<boolean> {
+export async function promptLanguage(): Promise<boolean> {
   const useTypeScript = await confirm({
     message: 'Would you like to use TypeScript?',
     initialValue: true,
@@ -352,7 +352,7 @@ export async function collectProjectOptions(args: { projectName?: string; yes?: 
 
   // Interactive prompts
   const featureOptions = await promptFeatures();
-  const typescript = await promptTypeScript();
+  const typescript = await promptLanguage();
   const packageManager = await promptPackageManager();
   const runtime = await promptRuntime();
 
