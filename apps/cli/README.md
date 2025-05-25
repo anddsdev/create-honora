@@ -4,7 +4,7 @@
   <img src="https://img.shields.io/npm/v/create-honora?style=flat-square" alt="npm version">
   <img src="https://img.shields.io/npm/dm/create-honora?style=flat-square" alt="npm downloads">
   <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="license">
-  <img src="https://img.shields.io/badge/node-%3E%3D16.20.2-brightgreen?style=flat-square" alt="node version">
+  <img src="https://img.shields.io/badge/node-%3E%3D18.20.8-brightgreen?style=flat-square" alt="node version">
 </p>
 
 **Create Honora** is a CLI tool to quickly scaffold Hono API projects with modern best practices, TypeScript support, and customizable features.
