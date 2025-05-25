@@ -4,9 +4,12 @@ import path from 'node:path';
 
 import pc from 'picocolors';
 
+import { defaultConfig } from './constants.js';
 import type {
   DatabaseChoice,
   DirectoryConflictAction,
+  AuthChoice,
+  LoggerChoice,
   FeatureOptions,
   ORMChoice,
   PackageManager,
@@ -150,13 +153,13 @@ export async function promptFeatures(): Promise<{ features: string[]; featureOpt
     const loggerChoice = await select({
       message: 'Which logging solution would you like to use?',
       options: [
-        { value: 'hono-standard', label: 'Hono Logger', hint: 'Built-in Hono logging middleware' },
+        { value: 'hono-logger', label: 'Hono Logger', hint: 'Built-in Hono logging middleware' },
         { value: 'pino', label: 'Pino', hint: 'Fast JSON logger for Node.js' },
       ],
     });
 
     if (typeof loggerChoice !== 'symbol') {
-      featureOptions.logger = loggerChoice as 'pino' | 'hono-standard';
+      featureOptions.logger = loggerChoice as LoggerChoice;
     }
   }
 
@@ -170,7 +173,7 @@ export async function promptFeatures(): Promise<{ features: string[]; featureOpt
     });
 
     if (typeof authChoice !== 'symbol') {
-      featureOptions.auth = authChoice as 'better-auth' | 'jwt';
+      featureOptions.auth = authChoice as AuthChoice;
     }
   }
 
@@ -345,20 +348,7 @@ export async function collectProjectOptions(args: { projectName?: string; yes?: 
   }
 
   // Use defaults if --yes flag is provided
-  if (args.yes) {
-    return {
-      projectName: finalProjectName,
-      projectPath: finalProjectPath,
-      features: [],
-      featureOptions: {},
-      packageManager: 'npm',
-      runtime: 'node',
-      typescript: true,
-      git: true,
-      installDependencies: true,
-      directoryAction,
-    };
-  }
+  if (args.yes) return defaultConfig;
 
   // Interactive prompts
   const { features, featureOptions } = await promptFeatures();

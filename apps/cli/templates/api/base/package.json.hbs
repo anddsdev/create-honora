@@ -9,40 +9,12 @@
     "dev": "tsx watch src/index.ts", 
     "build": "tsc && tsc-alias", 
     "start": "node dist/index.js"
+{{else}}
+    "dev": "node --watch src/index.js", 
+    "start": "node dist/index.js"
 {{/if}}
 {{else if (eq runtime "bun")}}
     "dev": "bun run --hot src/index.ts"
-{{/if}}
-  }, 
-  "dependencies": {
-{{#if (eq runtime "node")}}
-    "@hono/node-server": "^1.14.2",
-{{/if}}
-{{#if (eq featureOptions.logger "pino")}}
-    "pino": "^9.7.0",
-{{/if}}
-{{#if featureOptions.auth}}
-  {{#if (eq featureOptions.auth "better-auth")}}
-    "better-auth": "^1.2.8",
-  {{/if}}
-{{/if}}
-    "hono": "^4.7.10"
-  }, 
-  "devDependencies": {
-{{#if (ifCond runtime '==' 'node')}}
-{{#if typescript}}
-    "tsc-alias": "^1.8.16",
-    "@types/node": "^22.15.21",
-{{/if}}
-    "tsx": "^4.19.4"{{#if typescript}},{{/if}}
-{{/if}}
-{{#if (ifCond runtime '==' 'bun')}}
-{{#if typescript}}
-    "@types/bun": "^1.2.14",
-{{/if}}
-{{/if}}
-{{#if typescript}}
-    "typescript": "^5.8.3"
 {{/if}}
   }
 }

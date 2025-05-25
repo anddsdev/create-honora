@@ -4,14 +4,15 @@ import path from 'path';
 
 import { fileURLToPath } from 'url';
 
-
 import Handlebars from 'handlebars';
 
-import type { ProjectOptions } from './types.js';
-import { processEnvContent } from './utils/parse-env-content.js';
-import { convertToJavaScript, renameTypeScriptFiles } from './utils/parse-type-files.js';
-import { installDependencies } from './utils/install-dependencies.js';
+import type { FeatureOptions, PackageManager, ProjectOptions, Runtime, TemplateData } from './types.js';
+
+import { addDependencies } from './utils/add-dependencies.js';
 import { initializeGit } from './utils/initialize-git.js';
+import { installDependencies } from './utils/install-dependencies.js';
+import { processEnvContent } from './utils/parse-env-content.js';
+import { convertToJavaScript } from './utils/parse-type-files.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -84,8 +85,8 @@ export async function scaffoldProject(options: ProjectOptions): Promise<void> {
     git,
     directoryAction,
     installDependencies: installDependenciesFlag,
-    database,
-    orm,
+    // database,
+    // orm,
   } = options;
 
   // Handle directory action if needed
@@ -111,11 +112,12 @@ export async function scaffoldProject(options: ProjectOptions): Promise<void> {
     typescript,
     packageManager,
     featureOptions,
-  };
+  } as TemplateData;
+
   await copyTemplate(templateDir, projectPath, templateData, directoryAction === 'merge');
 
   // Create additional feature-specific files
-  await createFeatureFiles(projectPath, featureOptions, typescript);
+  await createFeatureFiles({ projectPath, templateData });
 
   // Convert to JavaScript if needed
   if (!typescript) {
@@ -132,8 +134,6 @@ export async function scaffoldProject(options: ProjectOptions): Promise<void> {
     await installDependencies(projectPath, packageManager);
   }
 }
-
-
 
 /**
  * Copies template files and replaces template variables using Handlebars
@@ -196,55 +196,43 @@ async function copyTemplate(
   }
 }
 
-/**
- * Creates additional files for selected features
- * @param projectPath - The path to the project
- * @param featureOptions - The options for the features
- * @param typescript - Whether the project is using TypeScript
- */
-async function createFeatureFiles(projectPath: string, featureOptions: any, typescript: boolean): Promise<void> {
-  const srcPath = path.join(projectPath, 'src');
+async function createFeatureFiles(options: { projectPath: string; templateData: TemplateData }): Promise<void> {
+  const { projectPath, templateData } = options;
+  const { featureOptions, packageManager, typescript, runtime } = templateData;
+
+  // const srcPath = path.join(projectPath, 'src');
+
+  if (typescript) {
+    await addDependencies({
+      devDependencies: ['typescript', 'tsc-alias', 'tsx'],
+      packageManager,
+      projectPath,
+    });
+  }
+
+  if (runtime === 'node') {
+    await addDependencies({
+      dependencies: ['@hono/node-server'],
+      packageManager,
+      projectPath,
+    });
+  }
+
+  if (featureOptions.logger && featureOptions.logger === 'pino') {
+    await addDependencies({
+      devDependencies: ['pino'],
+      packageManager,
+      projectPath,
+    });
+  }
 
   // Create auth route if auth feature is selected
-  if (featureOptions.auth) {
-    await fs.ensureDir(path.join(srcPath, 'routes'));
-    const authRouteFile = path.join(srcPath, 'routes', `auth.${typescript ? 'ts' : 'js'}`);
-    // TODO: Implement auth feature using better-auth and fix this example usage JWT
-    if (featureOptions.auth === 'jwt') {
-      const authContent = `
-import { Hono } from 'hono';
-import { jwt } from '@hono/jwt';
-import bcrypt from 'bcryptjs';
-
-export const authRouter = new Hono();
-
-// Login endpoint
-authRouter.post('/login', async (c) => {
-  const { email, password } = await c.req.json();
-  
-  // TODO: Implement user lookup from database
-  // const user = await getUserByEmail(email);
-  
-  // For demo purposes
-  const user = { id: 1, email: 'demo@example.com', password: 'hashedpassword' };
-  
-  if (!user || !await bcrypt.compare(password, user.password)) {
-    return c.json({ error: 'Invalid credentials' }, 401);
-  }
-  
-  const token = await jwt.sign({ userId: user.id }, process.env.JWT_SECRET!);
-  return c.json({ token });
-});
-
-// Protected route example
-authRouter.get('/profile', jwt({ secret: process.env.JWT_SECRET! }), async (c) => {
-  const payload = c.get('jwtPayload');
-  return c.json({ userId: payload.userId });
-});`;
-      await fs.writeFile(authRouteFile, authContent);
-    }
-  }
+  // if (featureOptions.auth) {
+  // await fs.ensureDir(path.join(srcPath, 'routes'));
+  // const authRouteFile = path.join(srcPath, 'routes', `auth.${typescript ? 'ts' : 'js'}`);
+  // if (featureOptions.auth === 'jwt') {
+  //   const authContent = '';
+  //   await fs.writeFile(authRouteFile, authContent);
+  // }
+  // }
 }
-
-
-
