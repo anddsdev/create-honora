@@ -4,12 +4,14 @@ import path from 'path';
 
 import { fileURLToPath } from 'url';
 
-import { execSync } from 'child_process';
 
-import consola from 'consola';
 import Handlebars from 'handlebars';
 
 import type { ProjectOptions } from './types.js';
+import { processEnvContent } from './utils/parse-env-content.js';
+import { renameTypeScriptFiles } from './utils/rename-type-files.js';
+import { installDependencies } from './utils/install-dependencies.js';
+import { initializeGit } from './utils/initialize-git.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -101,6 +103,7 @@ export async function scaffoldProject(options: ProjectOptions): Promise<void> {
   await fs.ensureDir(projectPath);
 
   // Copy base template
+  // TODO: Add support for different templates
   const templateDir = path.join(__dirname, '..', 'templates', 'api', 'base');
   const templateData = {
     projectName,
@@ -130,63 +133,7 @@ export async function scaffoldProject(options: ProjectOptions): Promise<void> {
   }
 }
 
-/**
- * Generates a random secret for environment variables
- * @param length - The length of the secret
- * @returns The generated secret
- */
-// TODO: Move this to a utility function
-function generateRandomSecret(length: number): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-}
 
-/**
- * Processes environment file content to provide default values
- * @param content - The content of the environment file
- * @returns The processed environment file content
- */
-// TODO: Move this to a utility function
-function processEnvContent(content: string): string {
-  // Remove comments and provide default values
-  return content
-    .split('\n')
-    .map((line) => {
-      const trimmed = line.trim();
-
-      // Keep existing key=value pairs as-is
-      if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
-        return line;
-      }
-
-      // Convert commented environment variables to actual values
-      if (trimmed.startsWith('# ') && trimmed.includes('=')) {
-        const envLine = trimmed.substring(2); // Remove '# '
-
-        // Provide default values for common environment variables
-        if (envLine.includes('JWT_SECRET=')) {
-          // Generate a more secure default JWT secret
-          const jwtSecret = generateRandomSecret(64);
-          return `JWT_SECRET=${jwtSecret}`;
-        }
-        if (envLine.includes('API_KEY=')) {
-          const apiKey = generateRandomSecret(32);
-          return `API_KEY=${apiKey}`;
-        }
-
-        // Default: return the line uncommented
-        return envLine;
-      }
-
-      // Keep comments and empty lines
-      return line;
-    })
-    .join('\n');
-}
 
 /**
  * Copies template files and replaces template variables using Handlebars
@@ -255,11 +202,7 @@ async function copyTemplate(
  * @param featureOptions - The options for the features
  * @param typescript - Whether the project is using TypeScript
  */
-async function createFeatureFiles(
-  projectPath: string,
-  featureOptions: any,
-  typescript: boolean,
-): Promise<void> {
+async function createFeatureFiles(projectPath: string, featureOptions: any, typescript: boolean): Promise<void> {
   const srcPath = path.join(projectPath, 'src');
 
   // Create auth route if auth feature is selected
@@ -331,87 +274,4 @@ async function convertToJavaScript(projectPath: string): Promise<void> {
   await renameTypeScriptFiles(projectPath);
 }
 
-/**
- * Recursively renames .ts files to .js
- * @param dir - The directory to rename the files in
- * @returns A promise that resolves when the files are renamed
- */
-async function renameTypeScriptFiles(dir: string): Promise<void> {
-  const files = await fs.readdir(dir);
 
-  for (const file of files) {
-    const filePath = path.join(dir, file);
-    const stat = await fs.stat(filePath);
-
-    if (stat.isDirectory()) {
-      await renameTypeScriptFiles(filePath);
-    } else if (file.endsWith('.ts')) {
-      const newPath = filePath.replace(/\.ts$/, '.js');
-
-      // Read content and remove type annotations
-      let content = await fs.readFile(filePath, 'utf-8');
-      content = removeTypeAnnotations(content);
-
-      await fs.writeFile(newPath, content);
-      await fs.remove(filePath);
-    }
-  }
-}
-
-/**
- * Basic removal of TypeScript type annotations
- * @param content - The content to remove the type annotations from
- * @returns The content with the type annotations removed
- */
-function removeTypeAnnotations(content: string): string {
-  // Remove import type statements
-  content = content.replace(/import\s+type\s+{[^}]+}\s+from\s+['"][^'"]+['"];?\n?/g, '');
-
-  // Remove type annotations from parameters and variables
-  content = content.replace(/:\s*[A-Z]\w*(\[])?/g, '');
-  content = content.replace(/:\s*string(\[])?/g, '');
-  content = content.replace(/:\s*number(\[])?/g, '');
-  content = content.replace(/:\s*boolean(\[])?/g, '');
-  content = content.replace(/:\s*any(\[])?/g, '');
-  content = content.replace(/:\s*void/g, '');
-
-  // Remove generic type parameters
-  content = content.replace(/<[A-Z]\w*>/g, '');
-
-  // Remove interface and type declarations
-  content = content.replace(/^(export\s+)?(interface|type)\s+\w+\s*{[^}]+}\n?/gm, '');
-
-  return content;
-}
-
-/**
- * Initializes a git repository
- * @param projectPath - The path to the project
- * @returns A promise that resolves when the git repository is initialized
- */
-async function initializeGit(projectPath: string): Promise<void> {
-  try {
-    execSync('git init', { cwd: projectPath, stdio: 'ignore' });
-    execSync('git add -A', { cwd: projectPath, stdio: 'ignore' });
-    execSync('git commit -m "Initial commit from create-honora"', {
-      cwd: projectPath,
-      stdio: 'ignore',
-    });
-  } catch (error) {
-    consola.warn('Failed to initialize git repository');
-  }
-}
-
-/**
- * Installs dependencies
- * @param projectPath - The path to the project
- * @param packageManager - The package manager to use
- * @returns A promise that resolves when the dependencies are installed
- */
-async function installDependencies(projectPath: string, packageManager: string): Promise<void> {
-  try {
-    execSync(`${packageManager} install`, { cwd: projectPath, stdio: 'inherit' });
-  } catch (error) {
-    consola.error('Failed to install dependencies');
-  }
-}
