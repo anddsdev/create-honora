@@ -18,6 +18,53 @@ Handlebars.registerHelper('eq', function (a, b) {
   return a === b;
 });
 
+Handlebars.registerHelper('ifCond', function (this: any, v1: any, operator: string, v2: any, options: any) {
+  let result = false;
+
+  switch (operator) {
+    case '==':
+      result = v1 == v2;
+      break;
+    case '===':
+      result = v1 === v2;
+      break;
+    case '!=':
+      result = v1 != v2;
+      break;
+    case '!==':
+      result = v1 !== v2;
+      break;
+    case '<':
+      result = v1 < v2;
+      break;
+    case '<=':
+      result = v1 <= v2;
+      break;
+    case '>':
+      result = v1 > v2;
+      break;
+    case '>=':
+      result = v1 >= v2;
+      break;
+    case '&&':
+      result = v1 && v2;
+      break;
+    case '||':
+      result = v1 || v2;
+      break;
+    default:
+      result = false;
+  }
+
+  // If used as block helper, return rendered content
+  if (options.fn) {
+    return result ? options.fn(this) : options.inverse(this);
+  }
+
+  // If used as subexpression, return boolean result
+  return result;
+});
+
 /**
  * Scaffolds a new Hono project based on the provided options
  */

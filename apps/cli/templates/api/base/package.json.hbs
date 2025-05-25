@@ -1,41 +1,48 @@
 { 
   "name": "{{projectName}}", 
   "version": "0.0.1", 
-  "type": "module", 
+  "type": "module",
+  "main": "src/index.ts",
   "scripts": {
 {{#if (eq runtime "node")}}
+{{#if typescript}}
     "dev": "tsx watch src/index.ts", 
-    "build": "tsx build src/index.ts --outdir=dist", 
-    "start": "node dist/index.js",
+    "build": "tsc && tsc-alias", 
+    "start": "node dist/index.js"
+{{/if}}
 {{else if (eq runtime "bun")}}
-    "dev": "bun run --hot src/index.ts",
-{{else if (eq runtime "deno")}}
-    "dev": "deno run --watch --allow-net --allow-env src/index.ts", 
-    "start": "deno run --allow-net --allow-env src/index.ts",
+    "dev": "bun run --hot src/index.ts"
 {{/if}}
   }, 
   "dependencies": {
 {{#if (eq runtime "node")}}
-  "@hono/node-server": "^1.14.2",
+    "@hono/node-server": "^1.14.2",
 {{/if}}
-  "hono": "^4.7.10",
 {{#if (eq featureOptions.logger "pino")}}
-  "pino": "^9.7.0",
+    "pino": "^9.7.0",
 {{/if}}
-
 {{#if featureOptions.auth}}
   {{#if (eq featureOptions.auth "better-auth")}}
     "better-auth": "^1.2.8",
   {{/if}}
 {{/if}}
+    "hono": "^4.7.10"
   }, 
   "devDependencies": {
-  {{#if typescript}}
-    "@types/node": "^22.15.21", 
-    "typescript": "^5.8.3",
-  {{/if}}
-  {{#if (eq runtime "node")}}
-    "tsx": "^4.19.4",
-  {{/if}}
+{{#if (ifCond runtime '==' 'node')}}
+{{#if typescript}}
+    "tsc-alias": "^1.8.16",
+    "@types/node": "^22.15.21",
+{{/if}}
+    "tsx": "^4.19.4"{{#if typescript}},{{/if}}
+{{/if}}
+{{#if (ifCond runtime '==' 'bun')}}
+{{#if typescript}}
+    "@types/bun": "^1.2.14",
+{{/if}}
+{{/if}}
+{{#if typescript}}
+    "typescript": "^5.8.3"
+{{/if}}
   }
 }

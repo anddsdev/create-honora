@@ -27,17 +27,17 @@ app.use('*', logger());
 {{/if}}
 
 {{#if (eq featureOptions.logger 'pino')}}
-  app.use('*', async (c, next) => { 
-    const start = Date.now();
-    await next();
-    const ms = Date.now() - start; 
-    logger.info({
-      method: c.req.method, 
-      url: c.req.url, 
-      status: c.res.status, 
-      duration: `${ms}ms` 
-    });
+app.use('*', async (c, next) => { 
+  const start = Date.now();
+  await next();
+  const ms = Date.now() - start; 
+  logger.info({
+    method: c.req.method, 
+    url: c.req.url, 
+    status: c.res.status, 
+    duration: `${ms}ms` 
   });
+});
 {{/if}}
 
 {{#if featureOptions.cors}}
@@ -66,7 +66,7 @@ app.get('/', (c) => {
 {{#if featureOptions.auth}}
   'auth',
 {{/if}}
-    ].filter(Boolean) 
+    ].map(feature => feature.trim())
   });
 });
 
@@ -74,7 +74,6 @@ app.get('/', (c) => {
 {{#if (eq featureOptions.auth 'better-auth')}}
 app.on(['POST', 'GET'], '/api/auth/**', (c) => auth.handler(c.req.raw));
 {{/if}}
-
 {{/if}}
 
 app.notFound((c) => { 
@@ -96,18 +95,19 @@ app.onError((err, c) => {
     }, 500);
 });
 
-const port = process.env.PORT || 3000;
 
 {{#if (eq runtime 'node')}}
-serve({ fetch: app.fetch, port: Number(port) });
-{{else if (eq runtime 'bun')}}
-export default { port: Number(port), fetch: app.fetch };
-{{else if (eq runtime 'deno')}}
-Deno.serve({ port: Number(port) }, app.fetch);
-{{/if}}
-
+serve({
+  fetch: app.fetch,
+  port: 3000,
+}, (info) => {
 {{#if (eq featureOptions.logger 'pino')}}
-logger.info(`Server is running on http://localhost:${port}`);
+  logger.info(`Server is running on http://localhost:${info.port}`);
 {{else}}
-console.log(`Server is running on http://localhost:${port}`);
+  console.log(`Server is running on http://localhost:${info.port}`);
+{{/if}}
+});
+
+{{else}}
+export default app;
 {{/if}}
