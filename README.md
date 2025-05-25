@@ -39,7 +39,7 @@ The main CLI application that scaffolds new Hono API projects with:
 - 🌐 **CORS Support** - Cross-Origin Resource Sharing middleware
 - 📋 **Multiple Templates** - Base API and OpenAPI-ready templates
 - 📦 **Package Manager Flexibility** - Support for npm, yarn, pnpm, and bun
-- ⚡  **Runtime Support** - Node.js, Bun, and Deno compatibility
+- ⚡ **Runtime Support** - Node.js, Bun, and Deno compatibility
 
 ### Documentation (`docs`)
 
@@ -263,7 +263,7 @@ Projects built with Create Honora:
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](apps/cli/LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
