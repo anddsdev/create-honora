@@ -25,6 +25,8 @@ export type FeatureOptions = {
   logger?: LoggerChoice;
   auth?: AuthChoice;
   cors?: boolean;
+  database?: DatabaseChoice;
+  orm?: ORMChoice;
 };
 
 export type ProjectOptions = {
