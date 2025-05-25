@@ -26,11 +26,14 @@ export interface ProjectOptions {
   runtime: Runtime;
   typescript: boolean;
   git: boolean;
+  installDependencies: boolean;
   directoryAction?: DirectoryConflictAction;
 }
 
 /**
  * Prompts for the project name with validation
+ * @param defaultName - The default name for the project
+ * @returns The project name
  */
 export async function promptProjectName(defaultName?: string): Promise<string> {
   let isValid = false;
@@ -62,6 +65,9 @@ export async function promptProjectName(defaultName?: string): Promise<string> {
 
 /**
  * Handles directory conflicts
+ * @param projectPath - The path to the project
+ * @param projectName - The name of the project
+ * @returns The action to take and the new path if applicable
  */
 export async function handleDirectoryConflict(
   projectPath: string,
@@ -237,7 +243,9 @@ export async function promptTypeScript(): Promise<boolean> {
 }
 
 /**
- * Main prompt flow
+ * Main prompt flow for collecting project options
+ * @param args - The arguments for the project
+ * @returns The collected project options
  */
 export async function collectProjectOptions(args: { projectName?: string; yes?: boolean }): Promise<ProjectOptions> {
   // Get and validate project information
@@ -290,6 +298,7 @@ export async function collectProjectOptions(args: { projectName?: string; yes?: 
       runtime: 'node',
       typescript: true,
       git: true,
+      installDependencies: true,
       directoryAction,
     };
   }
@@ -305,6 +314,11 @@ export async function collectProjectOptions(args: { projectName?: string; yes?: 
     initialValue: true,
   });
 
+  const installDependencies = await confirm({
+    message: 'Install dependencies?',
+    initialValue: true,
+  });
+
   return {
     projectName: finalProjectName,
     projectPath: finalProjectPath,
@@ -314,6 +328,7 @@ export async function collectProjectOptions(args: { projectName?: string; yes?: 
     runtime,
     typescript,
     git: typeof git === 'symbol' ? true : git,
+    installDependencies: typeof installDependencies === 'symbol' ? true : installDependencies,
     directoryAction,
   };
 }

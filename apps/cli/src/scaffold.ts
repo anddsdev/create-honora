@@ -67,8 +67,10 @@ Handlebars.registerHelper('ifCond', function (this: any, v1: any, operator: stri
 
 /**
  * Scaffolds a new Hono project based on the provided options
+ * @param options - The options for the project
+ * @returns A promise that resolves when the project is scaffolded
  */
-export async function scaffoldProject(options: ProjectOptions) {
+export async function scaffoldProject(options: ProjectOptions): Promise<void> {
   const {
     projectPath,
     projectName,
@@ -79,6 +81,7 @@ export async function scaffoldProject(options: ProjectOptions) {
     typescript,
     git,
     directoryAction,
+    installDependencies: installDependenciesFlag,
   } = options;
 
   // Handle directory action if needed
@@ -118,11 +121,19 @@ export async function scaffoldProject(options: ProjectOptions) {
   if (git) {
     await initializeGit(projectPath);
   }
+
+  // Install dependencies if requested
+  if (installDependenciesFlag) {
+    await installDependencies(projectPath, packageManager);
+  }
 }
 
 /**
  * Generates a random secret for environment variables
+ * @param length - The length of the secret
+ * @returns The generated secret
  */
+// TODO: Move this to a utility function
 function generateRandomSecret(length: number): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';
@@ -134,8 +145,11 @@ function generateRandomSecret(length: number): string {
 
 /**
  * Processes environment file content to provide default values
+ * @param content - The content of the environment file
+ * @returns The processed environment file content
  */
-function processEnvContent(content: string, projectName?: string): string {
+// TODO: Move this to a utility function
+function processEnvContent(content: string): string {
   // Remove comments and provide default values
   return content
     .split('\n')
@@ -174,13 +188,17 @@ function processEnvContent(content: string, projectName?: string): string {
 
 /**
  * Copies template files and replaces template variables using Handlebars
+ * @param templatePath - The path to the template
+ * @param targetPath - The path to the target
+ * @param variables - The variables to replace in the template
+ * @param mergeMode - Whether to merge the template with the target
  */
 async function copyTemplate(
   templatePath: string,
   targetPath: string,
   variables: Record<string, any>,
   mergeMode = false,
-) {
+): Promise<void> {
   const files = await fs.readdir(templatePath);
 
   for (const file of files) {
@@ -210,7 +228,7 @@ async function copyTemplate(
 
       // Process .env file content
       if (file === 'env.example') {
-        content = processEnvContent(content, variables.projectName);
+        content = processEnvContent(content);
       } else if (file.endsWith('.hbs')) {
         // Use Handlebars to process template
         const template = Handlebars.compile(content);
@@ -231,15 +249,22 @@ async function copyTemplate(
 
 /**
  * Creates additional files for selected features
+ * @param projectPath - The path to the project
+ * @param featureOptions - The options for the features
+ * @param typescript - Whether the project is using TypeScript
  */
-async function createFeatureFiles(projectPath: string, featureOptions: any, typescript: boolean) {
+async function createFeatureFiles(
+  projectPath: string,
+  featureOptions: any,
+  typescript: boolean,
+): Promise<void> {
   const srcPath = path.join(projectPath, 'src');
 
   // Create auth route if auth feature is selected
   if (featureOptions.auth) {
     await fs.ensureDir(path.join(srcPath, 'routes'));
     const authRouteFile = path.join(srcPath, 'routes', `auth.${typescript ? 'ts' : 'js'}`);
-
+    // TODO: Implement auth feature using better-auth and fix this example usage JWT
     if (featureOptions.auth === 'jwt') {
       const authContent = `
 import { Hono } from 'hono';
@@ -278,8 +303,10 @@ authRouter.get('/profile', jwt({ secret: process.env.JWT_SECRET! }), async (c) =
 
 /**
  * Converts TypeScript files to JavaScript
+ * @param projectPath - The path to the project
+ * @returns A promise that resolves when the TypeScript files are converted to JavaScript
  */
-async function convertToJavaScript(projectPath: string) {
+async function convertToJavaScript(projectPath: string): Promise<void> {
   // Remove TypeScript configuration
   await fs.remove(path.join(projectPath, 'tsconfig.json'));
 
@@ -289,15 +316,12 @@ async function convertToJavaScript(projectPath: string) {
 
   // Remove TypeScript dependencies
   delete packageJson.devDependencies['@types/node'];
-  delete packageJson.devDependencies['@typescript-eslint/eslint-plugin'];
-  delete packageJson.devDependencies['@typescript-eslint/parser'];
   delete packageJson.devDependencies['typescript'];
 
   // Update scripts to use .js extensions
   packageJson.scripts.dev = 'node --watch src/index.js';
   packageJson.scripts.build = 'echo "No build step required for JavaScript"';
   packageJson.scripts.start = 'node src/index.js';
-  packageJson.scripts.lint = 'eslint src --ext .js';
 
   await fs.writeJson(packageJsonPath, packageJson, { spaces: 2 });
 
@@ -307,8 +331,10 @@ async function convertToJavaScript(projectPath: string) {
 
 /**
  * Recursively renames .ts files to .js
+ * @param dir - The directory to rename the files in
+ * @returns A promise that resolves when the files are renamed
  */
-async function renameTypeScriptFiles(dir: string) {
+async function renameTypeScriptFiles(dir: string): Promise<void> {
   const files = await fs.readdir(dir);
 
   for (const file of files) {
@@ -332,6 +358,8 @@ async function renameTypeScriptFiles(dir: string) {
 
 /**
  * Basic removal of TypeScript type annotations
+ * @param content - The content to remove the type annotations from
+ * @returns The content with the type annotations removed
  */
 function removeTypeAnnotations(content: string): string {
   // Remove import type statements
@@ -356,8 +384,10 @@ function removeTypeAnnotations(content: string): string {
 
 /**
  * Initializes a git repository
+ * @param projectPath - The path to the project
+ * @returns A promise that resolves when the git repository is initialized
  */
-async function initializeGit(projectPath: string) {
+async function initializeGit(projectPath: string): Promise<void> {
   try {
     execSync('git init', { cwd: projectPath, stdio: 'ignore' });
     execSync('git add -A', { cwd: projectPath, stdio: 'ignore' });
@@ -367,5 +397,19 @@ async function initializeGit(projectPath: string) {
     });
   } catch (error) {
     consola.warn('Failed to initialize git repository');
+  }
+}
+
+/**
+ * Installs dependencies
+ * @param projectPath - The path to the project
+ * @param packageManager - The package manager to use
+ * @returns A promise that resolves when the dependencies are installed
+ */
+async function installDependencies(projectPath: string, packageManager: string): Promise<void> {
+  try {
+    execSync(`${packageManager} install`, { cwd: projectPath, stdio: 'inherit' });
+  } catch (error) {
+    consola.error('Failed to install dependencies');
   }
 }

@@ -66,6 +66,11 @@ async function main() {
       options.git = false;
     }
 
+    // Override skip install option if provided via CLI
+    if (args.skipInstall === true) {
+      options.installDependencies = false;
+    }
+
     // Start scaffolding process
     const s = spinner();
     s.start('Creating project structure...');
@@ -74,23 +79,16 @@ async function main() {
 
     s.stop('Project structure created');
 
-    // Install dependencies if not skipped
-    if (!args.skipInstall) {
-      s.start('Installing dependencies...');
-      // TODO: Implement dependency installation
-      s.stop('Dependencies installed');
-    }
-
     const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
 
     outro(pc.green(`✨ Project created successfully in ${elapsedTime}s!`));
 
     console.log('\n' + pc.bold('Next steps:'));
     console.log(pc.gray('  cd ') + pc.cyan(options.projectName));
-    if (args.skipInstall) {
-      console.log(pc.gray('  npm install'));
+    if (!args.skipInstall) {
+      console.log(pc.gray(`  ${options.packageManager} install`));
     }
-    console.log(pc.gray('  npm run dev'));
+    console.log(pc.gray(`  ${options.packageManager} run dev`));
     console.log('\n' + pc.dim('Happy coding! 🚀'));
   } catch (error) {
     if (error instanceof Error && error.message.includes('cancelled')) {
