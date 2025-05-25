@@ -54,3 +54,31 @@ export function removeTypeAnnotations(content: string): string {
 
   return content;
 }
+
+/**
+ * Converts TypeScript files to JavaScript
+ * @param projectPath - The path to the project
+ * @returns A promise that resolves when the TypeScript files are converted to JavaScript
+ */
+export async function convertToJavaScript(projectPath: string): Promise<void> {
+  // Remove TypeScript configuration
+  await fs.remove(path.join(projectPath, 'tsconfig.json'));
+
+  // Update package.json
+  const packageJsonPath = path.join(projectPath, 'package.json');
+  const packageJson = await fs.readJson(packageJsonPath);
+
+  // Remove TypeScript dependencies
+  delete packageJson.devDependencies['@types/node'];
+  delete packageJson.devDependencies['typescript'];
+
+  // Update scripts to use .js extensions
+  packageJson.scripts.dev = 'node --watch src/index.js';
+  packageJson.scripts.build = 'echo "No build step required for JavaScript"';
+  packageJson.scripts.start = 'node src/index.js';
+
+  await fs.writeJson(packageJsonPath, packageJson, { spaces: 2 });
+
+  // Rename .ts files to .js
+  await renameTypeScriptFiles(projectPath);
+}
