@@ -12,6 +12,10 @@ import { logger } from 'hono/logger';
 import pino from 'pino';
 {{/if}}
 
+{{#if (eq featureOptions.auth 'better-auth')}}
+import { auth } from './lib/auth';
+{{/if}}
+
 const app = new Hono();
 
 {{#if (eq featureOptions.logger 'pino')}}
@@ -42,9 +46,9 @@ app.use('*', cors({
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   {{#if featureOptions.auth}}
   allowHeaders: ['Content-Type', 'Authorization'], 
-  allowCredentials: true
+  credentials: true
   {{/if}}
-  }));
+}));
 {{/if}}
 
 app.get('/', (c) => { 
@@ -67,7 +71,10 @@ app.get('/', (c) => {
 });
 
 {{#if featureOptions.auth}}
+{{#if (eq featureOptions.auth 'better-auth')}}
 app.on(['POST', 'GET'], '/api/auth/**', (c) => auth.handler(c.req.raw));
+{{/if}}
+
 {{/if}}
 
 app.notFound((c) => { 
@@ -76,6 +83,7 @@ app.notFound((c) => {
     message: `Route ${c.req.url} not found` 
   }, 404);
 });
+
 app.onError((err, c) => {
 {{#if (eq featureOptions.logger 'pino')}}
   logger.error(err, 'Unhandled error');

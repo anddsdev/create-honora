@@ -11,19 +11,10 @@
 		  "@/*": ["./src/*"]
 		},
 		"outDir": "./dist",
-		"types": [
-      {{#if (eq runtime "node")}}
-        "node"
-      {{else if (eq runtime "bun")}}
-        "bun"
-      {{else}}
-        "node", "bun"
-      {{/if}}
-    ],
+		"types": [{{#if (eq runtime "node")}} "@types/node" {{else if (eq runtime "bun")}} "@types/bun" {{else}} "@types/bun", "@types/node" {{/if}}],
 		"jsx": "react-jsx",
 		"jsxImportSource": "hono/jsx"
 	},
-	"tsc-alias": {
-		"resolveFullPaths": true
-	}
+	"include": ["src/**/*.ts"],
+	"exclude": ["node_modules"]
 }
