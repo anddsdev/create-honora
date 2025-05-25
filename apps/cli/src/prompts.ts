@@ -109,7 +109,7 @@ export async function handleDirectoryConflict(
  * Prompts for feature selection and their specific options
  * @returns The features and their options
  */
-export async function promptFeatures(): Promise<{ features: string[]; featureOptions: FeatureOptions }> {
+export async function promptFeatures(): Promise<FeatureOptions> {
   const features = await multiselect({
     message: 'Which features would you like to include?',
     options: [
@@ -191,7 +191,7 @@ export async function promptFeatures(): Promise<{ features: string[]; featureOpt
     featureOptions.orm = ormChoice;
   }
 
-  return { features, featureOptions };
+  return featureOptions;
 }
 
 /**
@@ -351,7 +351,7 @@ export async function collectProjectOptions(args: { projectName?: string; yes?: 
   if (args.yes) return defaultConfig;
 
   // Interactive prompts
-  const { features, featureOptions } = await promptFeatures();
+  const featureOptions = await promptFeatures();
   const typescript = await promptTypeScript();
   const packageManager = await promptPackageManager();
   const runtime = await promptRuntime();
@@ -369,7 +369,6 @@ export async function collectProjectOptions(args: { projectName?: string; yes?: 
   return {
     projectName: finalProjectName,
     projectPath: finalProjectPath,
-    features,
     featureOptions,
     packageManager,
     runtime,

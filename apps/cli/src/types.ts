@@ -40,7 +40,6 @@ export type YargsArgs = {
 export type ProjectOptions = {
   projectName: string;
   projectPath: string;
-  features: string[];
   featureOptions: FeatureOptions;
   packageManager: PackageManager;
   runtime: Runtime;

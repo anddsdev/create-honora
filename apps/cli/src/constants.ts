@@ -5,11 +5,8 @@ import type { ProjectOptions } from './types';
 export const defaultConfig: ProjectOptions = {
   projectName: 'my-hono-api',
   projectPath: path.resolve(process.cwd(), 'my-hono-api'),
-  features: ['cors'],
   featureOptions: {
     cors: true,
-    database: 'none',
-    orm: 'none',
   },
   packageManager: 'npm',
   runtime: 'node',
