@@ -9,7 +9,7 @@ import { execSync } from 'child_process';
 import consola from 'consola';
 import Handlebars from 'handlebars';
 
-import type { ProjectOptions } from './prompts.js';
+import type { ProjectOptions } from './types.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -82,6 +82,8 @@ export async function scaffoldProject(options: ProjectOptions): Promise<void> {
     git,
     directoryAction,
     installDependencies: installDependenciesFlag,
+    database,
+    orm,
   } = options;
 
   // Handle directory action if needed

@@ -18,6 +18,9 @@ export type LoggerChoice = 'pino' | 'hono-standard';
 
 export type DirectoryConflictAction = 'overwrite' | 'merge' | 'rename' | 'cancel';
 
+export type DatabaseChoice = 'sqlite' | 'postgresql' | 'mysql' | 'mariadb' | 'mongodb';
+export type ORMChoice = 'prisma' | 'typeorm' | 'drizzle' | 'mongoose';
+
 export type FeatureOptions = {
   logger?: LoggerChoice;
   auth?: AuthChoice;
@@ -31,6 +34,8 @@ export type ProjectOptions = {
   featureOptions: FeatureOptions;
   packageManager: PackageManager;
   runtime: Runtime;
+  database: DatabaseChoice;
+  orm: ORMChoice;
   typescript: boolean;
   git: boolean;
   installDependencies: boolean;

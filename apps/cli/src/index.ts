@@ -42,6 +42,17 @@ async function main() {
       describe: 'Skip the installation of dependencies',
       default: false,
     })
+    .options('database', {
+      type: 'string',
+      describe: 'The database to use',
+      choices: ['sqlite', 'postgresql', 'mysql', 'mariadb', 'mongodb'],
+      default: 'sqlite',
+    })
+    .options('orm', {
+      type: 'string',
+      describe: 'The ORM to use',
+      choices: ['prisma', 'typeorm', 'drizzle', 'mongoose'],
+    })
     .completion()
     .recommendCommands()
     .version(version)

@@ -4,7 +4,15 @@ import path from 'node:path';
 
 import pc from 'picocolors';
 
-import type { DirectoryConflictAction, FeatureOptions, PackageManager, ProjectOptions, Runtime } from './types.js';
+import type {
+  DatabaseChoice,
+  DirectoryConflictAction,
+  FeatureOptions,
+  ORMChoice,
+  PackageManager,
+  ProjectOptions,
+  Runtime,
+} from './types.js';
 
 import { getProjectInfo, showProjectSummary } from './utils/project-name.js';
 import { validateProjectName, checkDirectory, suggestAlternativeName } from './utils/validation.js';
@@ -225,6 +233,53 @@ export async function promptTypeScript(): Promise<boolean> {
 }
 
 /**
+ * Prompts for database selection
+ * @returns The database to use
+ */
+export async function promptDatabase(): Promise<DatabaseChoice> {
+  const database = await select({
+    message: 'Which database would you like to use?',
+    options: [
+      { value: 'sqlite', label: 'SQLite' },
+      { value: 'postgresql', label: 'PostgreSQL' },
+      { value: 'mysql', label: 'MySQL' },
+      { value: 'mariadb', label: 'MariaDB' },
+      { value: 'mongodb', label: 'MongoDB' },
+    ],
+    initialValue: 'sqlite',
+  });
+
+  if (typeof database === 'symbol') {
+    throw new Error('Database selection cancelled');
+  }
+
+  return database as DatabaseChoice;
+}
+
+/**
+ * Prompts for ORM selection
+ * @returns The ORM to use
+ */
+export async function promptORM(): Promise<ORMChoice> {
+  const orm = await select({
+    message: 'Which ORM would you like to use?',
+    options: [
+      { value: 'prisma', label: 'Prisma' },
+      { value: 'typeorm', label: 'TypeORM' },
+      { value: 'drizzle', label: 'Drizzle' },
+      { value: 'mongoose', label: 'Mongoose' },
+    ],
+    initialValue: 'prisma',
+  });
+
+  if (typeof orm === 'symbol') {
+    throw new Error('ORM selection cancelled');
+  }
+
+  return orm as ORMChoice;
+}
+
+/**
  * Main prompt flow for collecting project options
  * @param args - The arguments for the project
  * @returns The collected project options
@@ -278,6 +333,8 @@ export async function collectProjectOptions(args: { projectName?: string; yes?: 
       featureOptions: {},
       packageManager: 'npm',
       runtime: 'node',
+      database: 'sqlite',
+      orm: 'prisma',
       typescript: true,
       git: true,
       installDependencies: true,
@@ -301,6 +358,9 @@ export async function collectProjectOptions(args: { projectName?: string; yes?: 
     initialValue: true,
   });
 
+  const database = await promptDatabase();
+  const orm = await promptORM();
+
   return {
     projectName: finalProjectName,
     projectPath: finalProjectPath,
@@ -312,5 +372,7 @@ export async function collectProjectOptions(args: { projectName?: string; yes?: 
     git: typeof git === 'symbol' ? true : git,
     installDependencies: typeof installDependencies === 'symbol' ? true : installDependencies,
     directoryAction,
+    database,
+    orm,
   };
 }
