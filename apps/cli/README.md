@@ -3,8 +3,8 @@
 <p align="center">
   <img src="https://img.shields.io/npm/v/create-honora?style=flat-square" alt="npm version">
   <img src="https://img.shields.io/npm/dm/create-honora?style=flat-square" alt="npm downloads">
-  <img src="https://img.shields.io/github/license/anddsdev/create-honora?style=flat-square" alt="license">
-  <img src="https://img.shields.io/node/v/create-honora?style=flat-square" alt="node version">
+  <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="license">
+  <img src="https://img.shields.io/badge/node-%3E%3D16.20.2-brightgreen?style=flat-square" alt="node version">
 </p>
 
 **Create Honora** is a CLI tool to quickly scaffold Hono API projects with modern best practices, TypeScript support, and customizable features.
@@ -13,7 +13,7 @@
 
 - 🚀 **Quick Setup** - Get a Hono API project running in seconds
 - 📦 **Multiple Package Managers** - Support for npm, yarn, pnpm, and bun
-- ⚡ **Multiple Runtimes** - Works with Node.js, Bun, and Deno
+- ⚡  **Multiple Runtimes** - Works with Node.js, Bun, and Deno
 - 🔧 **Configurable Features** - CORS, Authentication, Logging, and more
 - 📝 **TypeScript First** - Built with TypeScript, optional JavaScript support
 - 🎯 **Template Variety** - Base API and OpenAPI templates available
@@ -263,7 +263,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ## License
 
-MIT © [Create Honora](https://github.com/anddsdev/create-honora/blob/main/LICENSE)
+MIT © [Create Honora](https://github.com/anddsdev/create-honora/blob/main/apps/cli/LICENSE)
 
 ## Support
 
