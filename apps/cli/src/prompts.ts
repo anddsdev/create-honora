@@ -4,31 +4,10 @@ import path from 'node:path';
 
 import pc from 'picocolors';
 
+import type { DirectoryConflictAction, FeatureOptions, PackageManager, ProjectOptions, Runtime } from './types.js';
+
 import { getProjectInfo, showProjectSummary } from './utils/project-name.js';
 import { validateProjectName, checkDirectory, suggestAlternativeName } from './utils/validation.js';
-import type { DirectoryConflictAction } from './utils/validation.js';
-
-export type Runtime = 'node' | 'bun' | 'deno';
-export type PackageManager = 'npm' | 'yarn' | 'pnpm' | 'bun';
-
-export interface FeatureOptions {
-  logger?: 'pino' | 'hono-standard';
-  auth?: 'better-auth' | 'jwt';
-  cors?: boolean;
-}
-
-export interface ProjectOptions {
-  projectName: string;
-  projectPath: string;
-  features: string[];
-  featureOptions: FeatureOptions;
-  packageManager: PackageManager;
-  runtime: Runtime;
-  typescript: boolean;
-  git: boolean;
-  installDependencies: boolean;
-  directoryAction?: DirectoryConflictAction;
-}
 
 /**
  * Prompts for the project name with validation
@@ -117,6 +96,7 @@ export async function handleDirectoryConflict(
 
 /**
  * Prompts for feature selection and their specific options
+ * @returns The features and their options
  */
 export async function promptFeatures(): Promise<{ features: string[]; featureOptions: FeatureOptions }> {
   const features = await multiselect({
@@ -185,15 +165,16 @@ export async function promptFeatures(): Promise<{ features: string[]; featureOpt
 
 /**
  * Prompts for package manager selection (npm, yarn, pnpm, bun)
+ * @returns The package manager to use
  */
-export async function promptPackageManager(): Promise<'npm' | 'yarn' | 'pnpm' | 'bun'> {
+export async function promptPackageManager(): Promise<PackageManager> {
   const packageManager = await select({
     message: 'Which package manager would you like to use?',
     options: [
       { value: 'npm', label: 'npm' },
-      { value: 'yarn', label: 'Yarn' },
+      { value: 'yarn', label: 'yarn' },
       { value: 'pnpm', label: 'pnpm' },
-      { value: 'bun', label: 'Bun' },
+      { value: 'bun', label: 'bun' },
     ],
     initialValue: 'npm',
   });
@@ -202,19 +183,19 @@ export async function promptPackageManager(): Promise<'npm' | 'yarn' | 'pnpm' | 
     throw new Error('Package manager selection cancelled');
   }
 
-  return packageManager as 'npm' | 'yarn' | 'pnpm' | 'bun';
+  return packageManager as PackageManager;
 }
 
 /**
- * Prompts for runtime selection (node, bun, deno)
+ * Prompts for runtime selection (node, bun)
+ * @returns The runtime to use
  */
-export async function promptRuntime(): Promise<'node' | 'bun' | 'deno'> {
+export async function promptRuntime(): Promise<Runtime> {
   const runtime = await select({
     message: 'Which runtime would you like to use?',
     options: [
       { value: 'node', label: 'Node.js' },
       { value: 'bun', label: 'Bun' },
-      { value: 'deno', label: 'Deno' },
     ],
     initialValue: 'node',
   });
@@ -223,11 +204,12 @@ export async function promptRuntime(): Promise<'node' | 'bun' | 'deno'> {
     throw new Error('Runtime selection cancelled');
   }
 
-  return runtime as 'node' | 'bun' | 'deno';
+  return runtime as Runtime;
 }
 
 /**
  * Prompts for TypeScript usage
+ * @returns Whether to use TypeScript
  */
 export async function promptTypeScript(): Promise<boolean> {
   const useTypeScript = await confirm({
@@ -236,7 +218,7 @@ export async function promptTypeScript(): Promise<boolean> {
   });
 
   if (typeof useTypeScript === 'symbol') {
-    throw new Error('TypeScript selection cancelled');
+    throw new Error('Language selection cancelled (TypeScript or JavaScript)');
   }
 
   return useTypeScript;

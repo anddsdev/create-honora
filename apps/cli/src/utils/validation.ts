@@ -83,6 +83,7 @@ export function validateProjectName(name: string): { isValid: boolean; error?: s
 
 /**
  * Gets invalid characters based on the operating system
+ * @returns An array of invalid characters
  */
 function getInvalidCharsForOS(): string[] {
   const common = ['/', '\0'];
@@ -125,14 +126,14 @@ export async function checkDirectory(dirPath: string): Promise<{ exists: boolean
 
 /**
  * Determines if a file should be ignored when checking if directory is empty
+ * @param filename - The filename to check
+ * @returns Whether the file should be ignored
  */
 function isIgnorableFile(filename: string): boolean {
   const ignorableFiles = ['.DS_Store', 'Thumbs.db', '.git', '.gitkeep', '.gitignore', 'desktop.ini'];
 
   return ignorableFiles.includes(filename);
 }
-
-export type DirectoryConflictAction = 'overwrite' | 'merge' | 'rename' | 'cancel';
 
 /**
  * Suggests a new project name if the current one exists
