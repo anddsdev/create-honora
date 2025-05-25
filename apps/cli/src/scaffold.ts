@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 
 import Handlebars from 'handlebars';
 
-import type { FeatureOptions, PackageManager, ProjectOptions, Runtime, TemplateData } from './types.js';
+import type { ProjectOptions, TemplateData } from './types.js';
 
 import { addDependencies } from './utils/add-dependencies.js';
 import { initializeGit } from './utils/initialize-git.js';
@@ -77,7 +77,6 @@ export async function scaffoldProject(options: ProjectOptions): Promise<void> {
   const {
     projectPath,
     projectName,
-    features,
     featureOptions,
     packageManager,
     runtime,
@@ -85,8 +84,6 @@ export async function scaffoldProject(options: ProjectOptions): Promise<void> {
     git,
     directoryAction,
     installDependencies: installDependenciesFlag,
-    // database,
-    // orm,
   } = options;
 
   // Handle directory action if needed
@@ -200,8 +197,6 @@ async function createFeatureFiles(options: { projectPath: string; templateData: 
   const { projectPath, templateData } = options;
   const { featureOptions, packageManager, typescript, runtime } = templateData;
 
-  // const srcPath = path.join(projectPath, 'src');
-
   if (typescript) {
     await addDependencies({
       devDependencies: ['typescript', 'tsc-alias', 'tsx'],
@@ -225,14 +220,4 @@ async function createFeatureFiles(options: { projectPath: string; templateData: 
       projectPath,
     });
   }
-
-  // Create auth route if auth feature is selected
-  // if (featureOptions.auth) {
-  // await fs.ensureDir(path.join(srcPath, 'routes'));
-  // const authRouteFile = path.join(srcPath, 'routes', `auth.${typescript ? 'ts' : 'js'}`);
-  // if (featureOptions.auth === 'jwt') {
-  //   const authContent = '';
-  //   await fs.writeFile(authRouteFile, authContent);
-  // }
-  // }
 }
