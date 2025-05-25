@@ -125,6 +125,16 @@ export async function promptFeatures(): Promise<{ features: string[]; featureOpt
         label: 'Authentication',
         hint: 'User authentication system',
       },
+      {
+        value: 'database',
+        label: 'Database',
+        hint: 'Database to use for storing data',
+      },
+      {
+        value: 'orm',
+        label: 'ORM',
+        hint: 'ORM to use for interacting with the database',
+      },
     ],
     required: false,
   });
@@ -166,6 +176,16 @@ export async function promptFeatures(): Promise<{ features: string[]; featureOpt
 
   if (features.includes('cors')) {
     featureOptions.cors = true;
+  }
+
+  if (features.includes('database')) {
+    const databaseChoice = await promptDatabase();
+    featureOptions.database = databaseChoice;
+  }
+
+  if (features.includes('orm')) {
+    const ormChoice = await promptORM();
+    featureOptions.orm = ormChoice;
   }
 
   return { features, featureOptions };
@@ -333,8 +353,6 @@ export async function collectProjectOptions(args: { projectName?: string; yes?: 
       featureOptions: {},
       packageManager: 'npm',
       runtime: 'node',
-      database: 'sqlite',
-      orm: 'prisma',
       typescript: true,
       git: true,
       installDependencies: true,
@@ -358,9 +376,6 @@ export async function collectProjectOptions(args: { projectName?: string; yes?: 
     initialValue: true,
   });
 
-  const database = await promptDatabase();
-  const orm = await promptORM();
-
   return {
     projectName: finalProjectName,
     projectPath: finalProjectPath,
@@ -372,7 +387,5 @@ export async function collectProjectOptions(args: { projectName?: string; yes?: 
     git: typeof git === 'symbol' ? true : git,
     installDependencies: typeof installDependencies === 'symbol' ? true : installDependencies,
     directoryAction,
-    database,
-    orm,
   };
 }
