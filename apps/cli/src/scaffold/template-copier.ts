@@ -71,7 +71,9 @@ export async function copyTemplate(
   variables: Record<string, any>,
   mergeMode = false,
 ): Promise<void> {
+  console.log(`Copying from ${templatePath} to ${targetPath}`);
   const files = await fs.readdir(templatePath);
+  console.log(`Files found: ${files.join(', ')}`);
 
   for (const file of files) {
     const sourcePath = path.join(templatePath, file);
@@ -79,6 +81,7 @@ export async function copyTemplate(
     const stat = await fs.stat(sourcePath);
 
     if (stat.isDirectory()) {
+      console.log(`Creating directory: ${targetFile}`);
       await fs.ensureDir(targetFile);
       await copyTemplate(sourcePath, targetFile, variables, mergeMode);
     } else {
