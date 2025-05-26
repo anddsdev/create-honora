@@ -1,6 +1,6 @@
 {
   "name": "create-honora",
-  "version": "0.3.0-alpha.3",
+  "version": "1.0.0-beta.1",
   "description": "Create Honora is a CLI tool to create Hono API projects with best practices.",
   "author": {
     "name": "Camilo Vargas",
