@@ -34,6 +34,7 @@ The main CLI application that scaffolds new Hono API projects with:
 
 - 🔧 **Interactive Project Setup** - Guided prompts for configuration
 - 📝 **TypeScript Support** - Full TypeScript configuration out of the box
+- 🗄️ **Database & ORM Integration** - Automatic setup for Drizzle, Prisma with PostgreSQL, MySQL, SQLite
 - 🔒 **Authentication Options** - Better Auth or JWT implementation
 - 📊 **Logging Solutions** - Pino or Hono standard logger
 - 🌐 **CORS Support** - Cross-Origin Resource Sharing middleware
@@ -164,6 +165,35 @@ create-honora test-project
 - Structured logging
 - Multiple transports
 - Production-ready
+
+### 🗄️ Database & ORM Support
+
+Automatic database setup with popular ORMs:
+
+#### Supported ORMs
+
+- **Drizzle** - Type-safe SQL toolkit with excellent TypeScript support
+- **Prisma** - Next-generation ORM with auto-generated client
+- **TypeORM** - (Coming soon) Decorator-based ORM
+- **Mongoose** - (Coming soon) MongoDB object modeling
+
+#### Supported Databases
+
+- **PostgreSQL** - Advanced open-source relational database
+- **MySQL** - Popular relational database management system
+- **MariaDB** - MySQL-compatible database server
+- **SQLite** - Lightweight file-based database
+- **MongoDB** - (Coming soon) NoSQL document database
+
+#### What's Included
+
+When you select a database and ORM combination, the CLI automatically:
+
+- 📁 **Copies database-specific templates** - Connection setup, schemas, and configuration
+- 📦 **Installs correct dependencies** - Database drivers and ORM packages
+- ⚙️ **Sets up configuration files** - Database connection and ORM config
+- 🔧 **Configures environment variables** - Database URLs and connection strings
+- 📝 **Includes example schemas** - User model and basic table structure
 
 ### 📦 Package Managers
 

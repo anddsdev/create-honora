@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import type { FeatureOptions, TemplateConfig, Runtime } from '../types';
+import type { FeatureOptions, TemplateConfig, Runtime, DatabaseChoice, ORMChoice } from '../types';
 
 /**
  * Template types available in the system
@@ -27,6 +27,50 @@ export function getTemplatePath(templateType: TemplateType): string {
 }
 
 /**
+ * Gets the database template directory path for the given ORM and database combination
+ * @param orm - The ORM being used
+ * @param database - The database being used
+ * @returns The path to the database template directory, or null if no template exists
+ */
+export function getDatabaseTemplatePath(orm: ORMChoice, database: DatabaseChoice): string | null {
+  if (orm === 'none' || database === 'none') {
+    return null;
+  }
+
+  // When running from dist/, we need to go up one level to reach the templates
+  const templatesBaseDir = path.join(__dirname, '..', 'templates', 'db');
+
+  const databaseMap: Record<DatabaseChoice, string | null> = {
+    postgresql: 'postgres',
+    mysql: 'mysql',
+    mariadb: 'mysql', // MariaDB uses the same template as MySQL
+    sqlite: 'sqlite',
+    mongodb: 'mongodb',
+    none: null,
+  };
+
+  const databaseDir = databaseMap[database];
+  if (!databaseDir) {
+    return null;
+  }
+
+  switch (orm) {
+    case 'drizzle':
+      return path.join(templatesBaseDir, 'drizzle', databaseDir, 'src');
+    case 'prisma':
+      return path.join(templatesBaseDir, 'prisma', databaseDir, 'src');
+    case 'typeorm':
+      // Future: return path.join(templatesBaseDir, 'typeorm', databaseDir, 'src');
+      return null;
+    case 'mongoose':
+      // Future: return path.join(templatesBaseDir, 'mongoose', 'mongodb', 'src');
+      return null;
+    default:
+      return null;
+  }
+}
+
+/**
  * Gets the template configuration including additional dependencies and setup steps
  * @param templateType - The type of template
  * @param features - The features selected
@@ -42,11 +86,17 @@ export function getTemplateConfig(
     templateType,
     runtime,
     templatePath: getTemplatePath(templateType),
+    databaseTemplatePath: null,
     additionalDependencies: [],
     devDependencies: [],
     setupSteps: [],
     envVariables: {},
   };
+
+  // Add database template path if database and ORM are selected
+  if (features?.database && features?.orm) {
+    baseConfig.databaseTemplatePath = getDatabaseTemplatePath(features.orm, features.database);
+  }
 
   // Add runtime-specific dependencies
   if (runtime === 'node') {
@@ -100,6 +150,7 @@ export function getTemplateConfig(
 
   if (features?.orm) {
     const pkgManager = runtime === 'node' ? 'npx' : 'bunx';
+
     switch (features.orm) {
       case 'prisma':
         baseConfig.additionalDependencies.push('@prisma/client');

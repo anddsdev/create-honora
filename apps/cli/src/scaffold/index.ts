@@ -45,13 +45,18 @@ export async function scaffoldProject(options: ProjectOptions): Promise<void> {
 
   await copyTemplate(templateConfig.templatePath, projectPath, templateData, directoryAction === 'merge');
 
+  if (templateConfig.databaseTemplatePath) {
+    consola.info(`Copying database template: ${featureOptions.orm}/${featureOptions.database}`);
+    await copyTemplate(templateConfig.databaseTemplatePath, projectPath, templateData, true);
+  }
+
   if (Object.keys(templateConfig.envVariables).length > 0) {
     await createEnvFile(projectPath, templateConfig.envVariables);
   }
 
   await manageDependencies(projectPath, templateConfig, packageManager, installDependenciesFlag);
 
-  if (templateConfig.setupSteps.length > 0) {
+  if (templateConfig.setupSteps.length > 0 && installDependenciesFlag) {
     await runSetupSteps(projectPath, templateConfig.setupSteps);
   }
 

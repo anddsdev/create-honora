@@ -28,6 +28,7 @@ export type TemplateConfig = {
   templateType: string;
   runtime: Runtime;
   templatePath: string;
+  databaseTemplatePath?: string | null;
   additionalDependencies: string[];
   devDependencies: string[];
   setupSteps: string[];
