@@ -1,16 +1,12 @@
-export { copyTemplate, createEnvFile } from './template-copier';
-export { handleDirectoryAction, isSafeToOverwrite, createProjectStructure } from './directory-handler';
-export { manageDependencies, runSetupSteps } from './dependency-manager';
-export { convertProject, postProcessProject } from './project-converter';
-
 import consola from 'consola';
 
 import type { ProjectOptions, TemplateData } from '../types';
 import { initializeGit } from '../utils/initialize-git';
+import { convertToJavaScript } from '../utils/parse-type-files';
 
-import { manageDependencies, runSetupSteps } from './dependency-manager';
+import { runSetupSteps } from './dependency-manager';
+import { manageDependencies } from './dependency-manager';
 import { handleDirectoryAction } from './directory-handler';
-import { postProcessProject } from './project-converter';
 import { copyTemplate, createEnvFile } from './template-copier';
 import { getTemplateConfig, type TemplateType } from './template-resolver';
 
@@ -55,10 +51,12 @@ export async function scaffoldProject(options: ProjectOptions): Promise<void> {
 
   await manageDependencies(projectPath, templateConfig, packageManager, installDependenciesFlag);
 
-  await postProcessProject(projectPath, { typescript, runtime });
-
   if (templateConfig.setupSteps.length > 0) {
     await runSetupSteps(projectPath, templateConfig.setupSteps);
+  }
+
+  if (!typescript) {
+    convertToJavaScript(projectPath);
   }
 
   if (git) {
