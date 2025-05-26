@@ -4,8 +4,8 @@ import path from 'node:path';
 
 import pc from 'picocolors';
 
-import type { DirectoryConflictAction } from '../types.js';
-import { suggestAlternativeName } from '../utils/validation.js';
+import type { DirectoryConflictAction } from '../types';
+import { suggestAlternativeName } from '../utils/validation';
 
 /**
  * Handles directory conflicts

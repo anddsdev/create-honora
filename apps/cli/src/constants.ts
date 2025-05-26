@@ -5,6 +5,7 @@ import type { ProjectOptions } from './types';
 export const defaultConfig: ProjectOptions = {
   projectName: 'my-hono-api',
   projectPath: path.resolve(process.cwd(), 'my-hono-api'),
+  template: 'base',
   featureOptions: {
     cors: true,
   },
@@ -31,17 +32,22 @@ export const dependenciesWithVersions = {
 
   // Database drivers
   sqlite3: '^5.1.7',
+  'better-sqlite3': '^11.10.0',
   pg: '^8.16.0',
   mysql2: '^3.14.1',
+  mariadb: '^3.5.0',
   mongodb: '^6.16.0',
 
   // Database types
   '@types/pg': '^8.15.2',
+  '@types/better-sqlite3': '^7.6.11',
+  '@types/mongoose': '^8.15.0',
 
   // ORMs
   prisma: '^6.8.2',
   '@prisma/client': '^6.8.2',
   typeorm: '^0.3.24',
+  'reflect-metadata': '^0.2.2',
   'drizzle-orm': '^0.43.1',
   'drizzle-kit': '^0.31.1',
   'drizzle-zod': '^0.8.2',

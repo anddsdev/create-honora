@@ -1,52 +1,50 @@
-export { promptProjectName } from './project-name.js';
-export { handleDirectoryConflict } from './directory-conflict.js';
-export { promptFeatures } from './features.js';
-export { promptPackageManager } from './package-manager.js';
-export { promptRuntime } from './runtime.js';
-export { promptLanguage } from './language.js';
-export { promptDatabase } from './database.js';
-export { promptORM } from './orm.js';
+export { promptProjectName } from './project-name';
+export { handleDirectoryConflict } from './directory-conflict';
+export { promptFeatures } from './features';
+export { promptPackageManager } from './package-manager';
+export { promptRuntime } from './runtime';
+export { promptLanguage } from './language';
+export { promptDatabase } from './database';
+export { promptORM } from './orm';
 
 import { confirm } from '@clack/prompts';
 
 import path from 'node:path';
 
-import { defaultConfig } from '../constants.js';
-import type { DirectoryConflictAction, ProjectOptions } from '../types.js';
-import { getProjectInfo, showProjectSummary } from '../utils/project-name.js';
-import { checkDirectory } from '../utils/validation.js';
+import { defaultConfig } from '../constants';
+import type { DirectoryConflictAction, ProjectOptions } from '../types';
+import { getProjectInfo, showProjectSummary } from '../utils/project-name';
+import { checkDirectory } from '../utils/validation';
 
-import { handleDirectoryConflict } from './directory-conflict.js';
-import { promptFeatures } from './features.js';
-import { promptGit } from './git.js';
-import { promptInstallDependencies } from './install-dependencies.js';
-import { promptLanguage } from './language.js';
-import { promptPackageManager } from './package-manager.js';
-import { promptProjectName } from './project-name.js';
-import { promptRuntime } from './runtime.js';
+import { handleDirectoryConflict } from './directory-conflict';
+import { promptFeatures } from './features';
+import { promptLanguage } from './language';
+import { promptPackageManager } from './package-manager';
+import { promptProjectName } from './project-name';
+import { promptRuntime } from './runtime';
 
 /**
  * Main prompt flow for collecting project options
  * @param args - The arguments for the project
  * @returns The collected project options
  */
-export async function collectProjectOptions(args: { projectName?: string; yes?: boolean }): Promise<ProjectOptions> {
-  // Get and validate project information
+export async function collectProjectOptions(args: {
+  template: string;
+  projectName?: string;
+  yes?: boolean;
+}): Promise<ProjectOptions> {
   const projectInfo = getProjectInfo(args.projectName);
   let { projectName, projectPath, isCurrentDirectory } = projectInfo;
 
-  // Show project summary
   if (!args.yes) {
     showProjectSummary(projectName, projectPath, isCurrentDirectory);
   }
 
-  // Check directory status
   const dirStatus = await checkDirectory(projectPath);
 
   let finalProjectPath = projectPath;
   let finalProjectName = projectName;
 
-  // Handle directory conflicts
   let directoryAction: DirectoryConflictAction | undefined;
   if (dirStatus.exists && !dirStatus.isEmpty) {
     const conflict = await handleDirectoryConflict(projectPath, finalProjectName);
@@ -61,7 +59,6 @@ export async function collectProjectOptions(args: { projectName?: string; yes?: 
       finalProjectName = path.basename(finalProjectPath);
     }
   } else {
-    // Prompt for project name if not using defaults and creating in current directory
     if (!args.yes && args.projectName === '.') {
       finalProjectName = await promptProjectName(finalProjectName);
       if (finalProjectName !== projectName) {
@@ -71,7 +68,15 @@ export async function collectProjectOptions(args: { projectName?: string; yes?: 
   }
 
   // Use defaults if --yes flag is provided
-  if (args.yes) return defaultConfig;
+  if (args.yes) {
+    return {
+      ...defaultConfig,
+      directoryAction,
+      projectName: finalProjectName,
+      projectPath: finalProjectPath,
+      template: args.template,
+    };
+  }
 
   // Interactive prompts
   const featureOptions = await promptFeatures();
@@ -79,19 +84,26 @@ export async function collectProjectOptions(args: { projectName?: string; yes?: 
   const packageManager = await promptPackageManager();
   const runtime = await promptRuntime();
 
-  const git = await promptGit();
+  const git = await confirm({
+    message: 'Initialize a Git repository?',
+    initialValue: true,
+  });
 
-  const installDependencies = await promptInstallDependencies();
+  const installDependencies = await confirm({
+    message: 'Install dependencies?',
+    initialValue: true,
+  });
 
   return {
-    projectName: finalProjectName,
-    projectPath: finalProjectPath,
-    featureOptions,
-    packageManager,
     runtime,
     typescript,
+    featureOptions,
+    packageManager,
+    directoryAction,
+    template: args.template,
+    projectName: finalProjectName,
+    projectPath: finalProjectPath,
     git: typeof git === 'symbol' ? true : git,
     installDependencies: typeof installDependencies === 'symbol' ? true : installDependencies,
-    directoryAction,
   };
 }

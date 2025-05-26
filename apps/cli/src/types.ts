@@ -24,6 +24,16 @@ export type TemplateData = {
   featureOptions: FeatureOptions;
 };
 
+export type TemplateConfig = {
+  templateType: string;
+  runtime: Runtime;
+  templatePath: string;
+  additionalDependencies: string[];
+  devDependencies: string[];
+  setupSteps: string[];
+  envVariables: Record<string, string>;
+};
+
 export type YargsArgs = {
   projectName: string;
 
@@ -32,6 +42,8 @@ export type YargsArgs = {
   skipInstall: boolean;
   runtime: Runtime;
   packageManager: PackageManager;
+  template: string;
+
   $0: string;
   _: (string | number)[];
   $: (string | number)[];
@@ -43,6 +55,7 @@ export type ProjectOptions = {
   featureOptions: FeatureOptions;
   packageManager: PackageManager;
   runtime: Runtime;
+  template: string;
 
   typescript: boolean;
   git: boolean;

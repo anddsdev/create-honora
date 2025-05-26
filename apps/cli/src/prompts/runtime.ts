@@ -1,6 +1,6 @@
 import { select } from '@clack/prompts';
 
-import type { Runtime } from '../types.js';
+import type { Runtime } from '../types';
 
 /**
  * Prompts for runtime selection (node, bun)

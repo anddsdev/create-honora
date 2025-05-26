@@ -1,6 +1,6 @@
 import { select } from '@clack/prompts';
 
-import type { PackageManager } from '../types.js';
+import type { PackageManager } from '../types';
 
 /**
  * Prompts for package manager selection (npm, yarn, pnpm, bun)

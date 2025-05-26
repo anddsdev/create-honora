@@ -10,10 +10,10 @@ import yargs from 'yargs';
 
 import { version } from '../package.json';
 
-import { scaffoldProject } from './scaffold.js';
-import type { YargsArgs } from './types.js';
+import { scaffoldProject } from './scaffold';
+import type { YargsArgs } from './types';
 
-import { collectProjectOptions } from './prompts/index.js';
+import { collectProjectOptions } from './prompts/index';
 
 async function main() {
   const startTime = Date.now();
@@ -43,6 +43,12 @@ async function main() {
       describe: 'Skip the installation of dependencies',
       default: false,
     })
+    .options('template', {
+      type: 'string',
+      describe: 'The template to use',
+      choices: ['base', 'openapi'],
+      default: 'base',
+    })
     .options('database', {
       type: 'string',
       describe: 'The database to use',
@@ -70,6 +76,7 @@ async function main() {
     // Collect project options through prompts
     const options = await collectProjectOptions({
       projectName: args.projectName,
+      template: args.template,
       yes: args.yes,
     });
 

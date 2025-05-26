@@ -1,6 +1,6 @@
 import { text } from '@clack/prompts';
 
-import { validateProjectName } from '../utils/validation.js';
+import { validateProjectName } from '../utils/validation';
 
 /**
  * Prompts for the project name with validation

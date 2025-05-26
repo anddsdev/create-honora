@@ -1,5 +1,6 @@
 import path from 'path';
-import { validateProjectName } from './validation.js';
+
+import { validateProjectName } from './validation';
 
 /**
  * Extracts and validates project name from command arguments

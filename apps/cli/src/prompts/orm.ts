@@ -1,6 +1,6 @@
 import { select } from '@clack/prompts';
 
-import type { ORMChoice } from '../types.js';
+import type { ORMChoice } from '../types';
 
 /**
  * Prompts for ORM selection

@@ -1,9 +1,9 @@
 import { multiselect, select } from '@clack/prompts';
 
-import type { FeatureOptions, LoggerChoice, AuthChoice } from '../types.js';
+import type { FeatureOptions, LoggerChoice, AuthChoice } from '../types';
 
-import { promptDatabase } from './database.js';
-import { promptORM } from './orm.js';
+import { promptDatabase } from './database';
+import { promptORM } from './orm';
 
 /**
  * Prompts for feature selection and their specific options

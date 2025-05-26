@@ -1,6 +1,6 @@
 import { select } from '@clack/prompts';
 
-import type { DatabaseChoice } from '../types.js';
+import type { DatabaseChoice } from '../types';
 
 /**
  * Prompts for database selection

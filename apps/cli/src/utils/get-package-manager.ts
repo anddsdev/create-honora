@@ -1,4 +1,4 @@
-import type { PackageManager } from '../types.js';
+import type { PackageManager } from '../types';
 
 /**
  * Gets the package manager to use

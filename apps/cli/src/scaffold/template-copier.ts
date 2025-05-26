@@ -1,20 +1,10 @@
 import fs from 'fs-extra';
 
-import path from 'path';
-
-import { fileURLToPath } from 'url';
+import path from 'node:path';
 
 import Handlebars from 'handlebars';
 
-import type { ProjectOptions, TemplateData } from './types.js';
-
-import { addDependencies } from './utils/add-dependencies.js';
-import { initializeGit } from './utils/initialize-git.js';
-import { installDependencies } from './utils/install-dependencies.js';
-import { processEnvContent } from './utils/parse-env-content.js';
-import { convertToJavaScript } from './utils/parse-type-files.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+import { processEnvContent } from '../utils/parse-env-content';
 
 // Register Handlebars helpers
 Handlebars.registerHelper('eq', function (a, b) {
@@ -69,77 +59,13 @@ Handlebars.registerHelper('ifCond', function (this: any, v1: any, operator: stri
 });
 
 /**
- * Scaffolds a new Hono project based on the provided options
- * @param options - The options for the project
- * @returns A promise that resolves when the project is scaffolded
- */
-export async function scaffoldProject(options: ProjectOptions): Promise<void> {
-  const {
-    projectPath,
-    projectName,
-    featureOptions,
-    packageManager,
-    runtime,
-    typescript,
-    git,
-    directoryAction,
-    installDependencies: installDependenciesFlag,
-  } = options;
-
-  // Handle directory action if needed
-  if (directoryAction === 'overwrite') {
-    // Remove all files except .git folder to preserve git history
-    const files = await fs.readdir(projectPath);
-    for (const file of files) {
-      if (file !== '.git') {
-        await fs.remove(path.join(projectPath, file));
-      }
-    }
-  }
-
-  // Create project directory
-  await fs.ensureDir(projectPath);
-
-  // Copy base template
-  // TODO: Add support for different templates
-  const templateDir = path.join(__dirname, '..', 'templates', 'api', 'base');
-  const templateData = {
-    projectName,
-    runtime,
-    typescript,
-    packageManager,
-    featureOptions,
-  } as TemplateData;
-
-  await copyTemplate(templateDir, projectPath, templateData, directoryAction === 'merge');
-
-  // Create additional feature-specific files
-  await createFeatureFiles({ projectPath, templateData });
-
-  // Convert to JavaScript if needed
-  if (!typescript) {
-    await convertToJavaScript(projectPath);
-  }
-
-  // Initialize git repository if requested
-  if (git) {
-    await initializeGit(projectPath);
-  }
-
-  // Install dependencies if requested
-  if (installDependenciesFlag) {
-    await installDependencies(projectPath, packageManager);
-  }
-}
-
-/**
  * Copies template files and replaces template variables using Handlebars
  * @param templatePath - The path to the template
  * @param targetPath - The path to the target
  * @param variables - The variables to replace in the template
  * @param mergeMode - Whether to merge the template with the target
  */
-async function copyTemplate(
+export async function copyTemplate(
   templatePath: string,
   targetPath: string,
   variables: Record<string, any>,
@@ -193,31 +119,50 @@ async function copyTemplate(
   }
 }
 
-async function createFeatureFiles(options: { projectPath: string; templateData: TemplateData }): Promise<void> {
-  const { projectPath, templateData } = options;
-  const { featureOptions, packageManager, typescript, runtime } = templateData;
+/**
+ * Processes environment variables and creates .env file
+ * @param targetPath - The target directory path
+ * @param envVariables - The environment variables to write
+ */
+export async function createEnvFile(targetPath: string, envVariables: Record<string, string>): Promise<void> {
+  const envPath = path.join(targetPath, '.env');
 
-  if (typescript) {
-    await addDependencies({
-      devDependencies: ['typescript', 'tsc-alias', 'tsx'],
-      packageManager,
-      projectPath,
-    });
-  }
+  // Check if .env already exists
+  if (await fs.pathExists(envPath)) {
+    // Read existing content
+    const existingContent = await fs.readFile(envPath, 'utf-8');
+    const existingLines = existingContent.split('\n');
+    const existingVars = new Set();
 
-  if (runtime === 'node') {
-    await addDependencies({
-      dependencies: ['@hono/node-server'],
-      packageManager,
-      projectPath,
-    });
-  }
+    // Parse existing variables
+    for (const line of existingLines) {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith('#')) {
+        const [key] = trimmed.split('=');
+        if (key) {
+          existingVars.add(key.trim());
+        }
+      }
+    }
 
-  if (featureOptions.logger && featureOptions.logger === 'pino') {
-    await addDependencies({
-      devDependencies: ['pino'],
-      packageManager,
-      projectPath,
-    });
+    // Add new variables that don't exist
+    const newLines: string[] = [];
+    for (const [key, value] of Object.entries(envVariables)) {
+      if (!existingVars.has(key)) {
+        newLines.push(`${key}=${value}`);
+      }
+    }
+
+    if (newLines.length > 0) {
+      const updatedContent = existingContent + '\n\n# Additional variables\n' + newLines.join('\n');
+      await fs.writeFile(envPath, updatedContent);
+    }
+  } else {
+    // Create new .env file
+    const envContent = Object.entries(envVariables)
+      .map(([key, value]) => `${key}=${value}`)
+      .join('\n');
+
+    await fs.writeFile(envPath, envContent);
   }
 }
