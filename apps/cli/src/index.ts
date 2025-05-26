@@ -10,9 +10,10 @@ import yargs from 'yargs';
 
 import { version } from '../package.json';
 
-import { collectProjectOptions } from './prompts.js';
 import { scaffoldProject } from './scaffold.js';
 import type { YargsArgs } from './types.js';
+
+import { collectProjectOptions } from './prompts/index.js';
 
 async function main() {
   const startTime = Date.now();
