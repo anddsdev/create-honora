@@ -1,0 +1,25 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+{{#ifCond featureOptions.database "===" "postgresql"}}
+  provider = "postgresql"
+{{/ifCond}}
+{{#ifCond featureOptions.database "===" "mysql"}}
+  provider = "mysql"
+{{/ifCond}}
+{{#ifCond featureOptions.database "===" "mariadb"}}
+  provider = "mysql"
+{{/ifCond}}
+{{#ifCond featureOptions.database "===" "sqlite"}}
+  provider = "sqlite"
+{{/ifCond}}
+  url      = env("DATABASE_URL")
+}
+
+
+ 

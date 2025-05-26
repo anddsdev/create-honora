@@ -49,16 +49,16 @@ export function getDatabaseTemplatePath(orm: ORMChoice, database: DatabaseChoice
     none: null,
   };
 
-  const databaseDir = databaseMap[database];
-  if (!databaseDir) {
-    return null;
-  }
-
   switch (orm) {
     case 'drizzle':
+      const databaseDir = databaseMap[database];
+      if (!databaseDir) {
+        return null;
+      }
       return path.join(templatesBaseDir, 'drizzle', databaseDir, 'src');
     case 'prisma':
-      return path.join(templatesBaseDir, 'prisma', databaseDir, 'src');
+      // Prisma uses a single src directory with Handlebars templates
+      return path.join(templatesBaseDir, 'prisma', 'src');
     case 'typeorm':
       // Future: return path.join(templatesBaseDir, 'typeorm', databaseDir, 'src');
       return null;
@@ -68,6 +68,87 @@ export function getDatabaseTemplatePath(orm: ORMChoice, database: DatabaseChoice
     default:
       return null;
   }
+}
+
+/**
+ * Configures database-specific dependencies and environment variables
+ * @param config - The template configuration
+ * @param database - The database being used
+ */
+function configureDatabaseDependencies(config: TemplateConfig, database: DatabaseChoice): void {
+  const databaseConfigs = {
+    postgresql: {
+      envVar: 'DATABASE_URL',
+      envValue: 'postgresql://user:password@localhost:5432/dbname',
+    },
+    mysql: {
+      envVar: 'DATABASE_URL',
+      envValue: 'mysql://user:password@localhost:3306/dbname',
+    },
+    mariadb: {
+      envVar: 'DATABASE_URL',
+      envValue: 'mariadb://user:password@localhost:3306/dbname',
+    },
+    mongodb: {
+      envVar: 'DATABASE_URL',
+      envValue: 'mongodb://localhost:27017/dbname',
+    },
+    sqlite: {
+      envVar: 'DATABASE_URL',
+      envValue: 'file:./database.db',
+    },
+    none: null,
+  };
+
+  const dbConfig = databaseConfigs[database];
+  if (!dbConfig) return;
+
+  config.envVariables[dbConfig.envVar] = dbConfig.envValue;
+}
+
+/**
+ * Configures ORM-specific dependencies and setup steps
+ * @param config - The template configuration
+ * @param orm - The ORM being used
+ * @param runtime - The runtime being used
+ */
+function configureORMDependencies(config: TemplateConfig, orm: ORMChoice, runtime: Runtime): void {
+  const pkgManager = runtime === 'node' ? 'npx' : 'bunx';
+
+  const ormConfigs = {
+    prisma: {
+      deps: ['@prisma/client'],
+      devDeps: ['prisma'],
+      setupSteps: [`${pkgManager} prisma generate`],
+    },
+    typeorm: {
+      deps: ['typeorm', 'reflect-metadata'],
+      devDeps: [],
+      setupSteps: [],
+    },
+    drizzle: {
+      deps: ['drizzle-orm'],
+      devDeps: ['drizzle-kit'],
+      setupSteps: [`${pkgManager} drizzle-kit generate`, `${pkgManager} drizzle-kit migrate`],
+    },
+    mongoose: {
+      deps: ['mongoose'],
+      devDeps: ['@types/mongoose'],
+      setupSteps: [],
+    },
+    none: {
+      deps: [],
+      devDeps: [],
+      setupSteps: [],
+    },
+  };
+
+  const ormConfig = ormConfigs[orm];
+  if (!ormConfig) return;
+
+  config.additionalDependencies.push(...ormConfig.deps);
+  config.devDependencies.push(...ormConfig.devDeps);
+  config.setupSteps.push(...ormConfig.setupSteps);
 }
 
 /**
@@ -93,12 +174,10 @@ export function getTemplateConfig(
     envVariables: {},
   };
 
-  // Add database template path if database and ORM are selected
   if (features?.database && features?.orm) {
     baseConfig.databaseTemplatePath = getDatabaseTemplatePath(features.orm, features.database);
   }
 
-  // Add runtime-specific dependencies
   if (runtime === 'node') {
     baseConfig.additionalDependencies.push('@hono/node-server');
   }
@@ -120,59 +199,11 @@ export function getTemplateConfig(
   }
 
   if (features?.database) {
-    switch (features.database) {
-      case 'postgresql':
-        baseConfig.additionalDependencies.push('pg');
-        baseConfig.devDependencies.push('@types/pg');
-        baseConfig.envVariables.DATABASE_URL = 'postgresql://user:password@localhost:5432/dbname';
-        break;
-      case 'mysql':
-        baseConfig.additionalDependencies.push('mysql2');
-        baseConfig.envVariables.DATABASE_URL = 'mysql://user:password@localhost:3306/dbname';
-        break;
-      case 'mariadb':
-        baseConfig.additionalDependencies.push('mariadb');
-        baseConfig.envVariables.DATABASE_URL = 'mariadb://user:password@localhost:3306/dbname';
-        break;
-      case 'mongodb':
-        baseConfig.additionalDependencies.push('mongodb');
-        baseConfig.envVariables.MONGODB_URI = 'mongodb://localhost:27017/dbname';
-        break;
-      case 'sqlite':
-        baseConfig.additionalDependencies.push('better-sqlite3');
-        baseConfig.devDependencies.push('@types/better-sqlite3');
-        baseConfig.envVariables.DATABASE_URL = 'file:./database.db';
-        break;
-      default:
-        break;
-    }
+    configureDatabaseDependencies(baseConfig, features.database);
   }
 
   if (features?.orm) {
-    const pkgManager = runtime === 'node' ? 'npx' : 'bunx';
-
-    switch (features.orm) {
-      case 'prisma':
-        baseConfig.additionalDependencies.push('@prisma/client');
-        baseConfig.devDependencies.push('prisma');
-        baseConfig.setupSteps.push(`${pkgManager} prisma generate`);
-        break;
-      case 'typeorm':
-        baseConfig.additionalDependencies.push('typeorm', 'reflect-metadata');
-        break;
-      case 'drizzle':
-        baseConfig.additionalDependencies.push('drizzle-orm');
-        baseConfig.devDependencies.push('drizzle-kit');
-        baseConfig.setupSteps.push(`${pkgManager} drizzle-kit generate`);
-        baseConfig.setupSteps.push(`${pkgManager} drizzle-kit migrate`);
-        break;
-      case 'mongoose':
-        baseConfig.additionalDependencies.push('mongoose');
-        baseConfig.devDependencies.push('@types/mongoose');
-        break;
-      default:
-        break;
-    }
+    configureORMDependencies(baseConfig, features.orm, runtime);
   }
 
   return baseConfig;
