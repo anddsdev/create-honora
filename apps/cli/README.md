@@ -13,7 +13,7 @@
 
 - 🚀 **Quick Setup** - Get a Hono API project running in seconds
 - 📦 **Multiple Package Managers** - Support for npm, yarn, pnpm, and bun
-- ⚡  **Multiple Runtimes** - Works with Node.js, Bun, and Deno
+- ⚡ **Multiple Runtimes** - Works with Node.js, Bun, and Deno
 - 🔧 **Configurable Features** - CORS, Authentication, Logging, and more
 - 📝 **TypeScript First** - Built with TypeScript, optional JavaScript support
 - 🎯 **Template Variety** - Base API and OpenAPI templates available
@@ -207,7 +207,7 @@ bun run build
 
 ## Requirements
 
-- **Node.js** >= 16.20.2
+- **Node.js** >= 18.20.8
 - **TypeScript** 5.8.3 (peer dependency)
 
 ## Examples

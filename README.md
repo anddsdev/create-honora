@@ -70,7 +70,7 @@ This project uses a monorepo structure with [Bun workspaces](https://bun.sh/docs
 
 ### Prerequisites
 
-- **Node.js** >= 16.20.2
+- **Node.js** >= 18.20.8
 - **Bun** >= 1.2.14 (recommended)
 - **Git**
 
