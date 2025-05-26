@@ -99,12 +99,12 @@ export function getTemplateConfig(
   }
 
   if (features?.orm) {
+    const pkgManager = runtime === 'node' ? 'npx' : 'bunx';
     switch (features.orm) {
       case 'prisma':
         baseConfig.additionalDependencies.push('@prisma/client');
         baseConfig.devDependencies.push('prisma');
-        const manager = runtime === 'node' ? 'npx' : 'bunx';
-        baseConfig.setupSteps.push(`${manager} prisma generate`);
+        baseConfig.setupSteps.push(`${pkgManager} prisma generate`);
         break;
       case 'typeorm':
         baseConfig.additionalDependencies.push('typeorm', 'reflect-metadata');
@@ -112,6 +112,8 @@ export function getTemplateConfig(
       case 'drizzle':
         baseConfig.additionalDependencies.push('drizzle-orm');
         baseConfig.devDependencies.push('drizzle-kit');
+        baseConfig.setupSteps.push(`${pkgManager} drizzle-kit generate`);
+        baseConfig.setupSteps.push(`${pkgManager} drizzle-kit migrate`);
         break;
       case 'mongoose':
         baseConfig.additionalDependencies.push('mongoose');
