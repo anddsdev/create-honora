@@ -55,7 +55,7 @@ export function getDatabaseTemplatePath(orm: ORMChoice, database: DatabaseChoice
       if (!databaseDir) {
         return null;
       }
-      return path.join(templatesBaseDir, 'drizzle', databaseDir, 'src');
+      return path.join(templatesBaseDir, 'drizzle', databaseDir);
     case 'prisma':
       // Prisma uses a single src directory with Handlebars templates
       return path.join(templatesBaseDir, 'prisma', 'src');

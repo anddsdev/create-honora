@@ -32,6 +32,8 @@ export async function collectProjectOptions(args: {
   template: string;
   projectName?: string;
   yes?: boolean;
+  database?: string;
+  orm?: string;
 }): Promise<ProjectOptions> {
   const projectInfo = getProjectInfo(args.projectName);
   let { projectName, projectPath, isCurrentDirectory } = projectInfo;

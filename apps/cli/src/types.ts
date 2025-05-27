@@ -44,6 +44,8 @@ export type YargsArgs = {
   runtime: Runtime;
   packageManager: PackageManager;
   template: string;
+  database?: DatabaseChoice;
+  orm?: ORMChoice;
 
   $0: string;
   _: (string | number)[];
